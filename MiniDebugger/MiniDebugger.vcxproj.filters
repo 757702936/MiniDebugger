@@ -21,9 +21,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="BreakPointObject.cpp">
-      <Filter>02-断点</Filter>
-    </ClCompile>
     <ClCompile Include="DebugTarget.cpp">
       <Filter>01-调试目标</Filter>
     </ClCompile>
@@ -33,11 +30,11 @@
     <ClCompile Include="Capstone.cpp">
       <Filter>04-反汇编</Filter>
     </ClCompile>
+    <ClCompile Include="BreakPoint.cpp">
+      <Filter>02-断点</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BreakPointObject.h">
-      <Filter>02-断点</Filter>
-    </ClInclude>
     <ClInclude Include="DebugTarget.h">
       <Filter>01-调试目标</Filter>
     </ClInclude>
@@ -46,6 +43,9 @@
     </ClInclude>
     <ClInclude Include="Capstone.h">
       <Filter>04-反汇编</Filter>
+    </ClInclude>
+    <ClInclude Include="BreakPoint.h">
+      <Filter>02-断点</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

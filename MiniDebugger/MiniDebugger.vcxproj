@@ -123,14 +123,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BreakPointObject.cpp" />
+    <ClCompile Include="BreakPoint.cpp" />
     <ClCompile Include="Capstone.cpp" />
     <ClCompile Include="DebugTarget.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="User.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BreakPointObject.h" />
+    <ClInclude Include="BreakPoint.h" />
     <ClInclude Include="Capstone.h" />
     <ClInclude Include="DebugTarget.h" />
     <ClInclude Include="User.h" />

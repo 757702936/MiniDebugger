@@ -1,5 +1,7 @@
 #include "DebugTarget.h"
 #include "Capstone.h"
+#include "User.h"
+#include "BreakPoint.h"
 #include <iostream>
 using namespace std;
 
@@ -12,8 +14,12 @@ DebugTarget::DebugTarget()
 	m_hProcess = 0;
 	// 线程句柄
 	m_hThread = 0;
-	// 异常信息
-	m_stcException = { 0 };
+	// 系统断点
+	m_bIsSystemBP = true;
+	// 是否需要用户输入
+	m_bNeedInput = true;
+	// OEP
+	m_OEP = 0;
 }
 
 
@@ -52,7 +58,7 @@ void DebugTarget::DebugLoop()
 {
 	// 用于保存调试信息的处理结果
 	DWORD result = DBG_CONTINUE;
-
+	
 	while (true)
 	{
 		// 等待调试事件
@@ -60,9 +66,12 @@ void DebugTarget::DebugLoop()
 
 		// 根据产生异常的位置打开句柄
 		OpenExceptionHandles();
-		
+		// 用户类获取句柄
+		User::GetProcessHandle(m_hProcess);
+		User::GetThreadHandle(m_hThread);
+
 		// 分派调试事件
-		result = DispatchDebugEvent(&m_stcDbEvent);
+		result = DispatchDebugEvent();
 
 		// 根据产生异常的位置关闭句柄
 		CloseExceptionHandles();
@@ -88,22 +97,24 @@ void DebugTarget::CloseExceptionHandles()
 }
 
 // 分派调试事件
-DWORD DebugTarget::DispatchDebugEvent(LPDEBUG_EVENT DbEvent)
+DWORD DebugTarget::DispatchDebugEvent()
 {
 	// 用于保存调试信息的处理结果
 	DWORD result = DBG_CONTINUE;
 
-	switch (DbEvent->dwDebugEventCode)
+	switch (m_stcDbEvent.dwDebugEventCode)
 	{
 		// 创建进程事件
 		case CREATE_PROCESS_DEBUG_EVENT:
 		{
+			m_OEP = (DWORD)m_stcDbEvent.u.CreateProcessInfo.lpStartAddress;
+			result = DBG_CONTINUE;
 			break;
 		}
 		// 产生异常信息事件
 		case EXCEPTION_DEBUG_EVENT:
 		{
-			result = OnHandleException(&m_stcDbEvent.u.Exception);
+			result = OnHandleException(m_stcDbEvent.u.Exception);
 			break;
 		}
 		// 其余情况也返回已处理
@@ -116,31 +127,54 @@ DWORD DebugTarget::DispatchDebugEvent(LPDEBUG_EVENT DbEvent)
 }
 
 // 处理异常
-DWORD DebugTarget::OnHandleException(EXCEPTION_DEBUG_INFO* ExceptionInfo)
+DWORD DebugTarget::OnHandleException(EXCEPTION_DEBUG_INFO& ExceptionInfo)
 {
 	// 异常类型
-	DWORD ExceptionCode = ExceptionInfo->ExceptionRecord.ExceptionCode;
+	DWORD ExceptionCode = ExceptionInfo.ExceptionRecord.ExceptionCode;
 	// 异常地址
-	LPVOID ExceptionAddress = ExceptionInfo->ExceptionRecord.ExceptionAddress;
+	DWORD ExceptionAddress = (DWORD)ExceptionInfo.ExceptionRecord.ExceptionAddress;
 
 	switch (ExceptionCode)
 	{
-		// 软件断点
+		// 修复软件断点
 		case EXCEPTION_BREAKPOINT:
 		{
+			// 判断是不是系统断点
+			if (m_bIsSystemBP)
+			{
+				// 在 OEP 位置设置一个软件断点
+				BreakPoint::SetBreadPoint_Soft(m_hProcess, m_OEP);
+				// 下一次就不是系统断点了
+				m_bIsSystemBP = false;
+				// 这个位置不接收用户输入，第一次只显示
+				m_bNeedInput = false;
+				break;
+			}
+			// 修复当前设置的软件断点
+			BreakPoint::FixBreakPoint_Soft(m_hProcess, m_hThread, ExceptionAddress);
 			break;
 		}
-		// 硬件断点
+		// 修复硬件断点
 		case EXCEPTION_SINGLE_STEP:
 		{
+			BreakPoint::FixBreakPoint_Hard(m_hThread, ExceptionAddress);
 			break;
 		}
-		// 内存断点
+		// 修复内存断点
 		case EXCEPTION_ACCESS_VIOLATION:
 		{
 			break;
 		}
 	}
+
+	// 如果需要断下并接收输入
+	if (m_bNeedInput)
+	{
+		Capstone::DisAsm(m_hProcess, (LPVOID)ExceptionAddress, 10);
+		User::GetUserInput();
+	}
+
+	m_bNeedInput = true;
 
 	return DBG_CONTINUE;
 }
