@@ -136,6 +136,7 @@
     <ClInclude Include="DebugTarget.h" />
     <ClInclude Include="User.h" />
     <ClInclude Include="MyXEDParse.h" />
+    <ClInclude Include="HightLight.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -4,8 +4,11 @@
 #include "BreakPoint.h"
 #include "MyCapstone.h"
 #include "MyXEDParse.h"
+#include "HightLight.h"
+#include <psapi.h>
+#include <shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
 
-using namespace std;
 
 User::User()
 {
@@ -16,10 +19,39 @@ User::~User()
 {
 }
 
+// 标志寄存器
+typedef struct _EFLAGS
+{
+	unsigned CF : 1;  // 进位或错位
+	unsigned Reserve1 : 1;
+	unsigned PF : 1;  // 计算结果低位包含偶数个1时，此标志为1
+	unsigned Reserve2 : 1;
+	unsigned AF : 1;  // 辅助进位标志，当位3处有进位或借位时该标志为1
+	unsigned Reserve3 : 1;
+	unsigned ZF : 1;  // 计算结果为0时，此标志为1
+	unsigned SF : 1;  // 符号标志，计算结果为负时该标志为1
+	unsigned TF : 1;  // * 陷阱标志，此标志为1时，CPU每次仅会执行1条指令
+	unsigned IF : 1;  // 中断标志，为0时禁止响应（屏蔽中断），为1时恢复
+	unsigned DF : 1;  // 方向标志
+	unsigned OF : 1;  // 溢出标志，计算结果超出机器表达范围时为1，否则为0
+	unsigned IOPL : 2;  // 用于标明当前任务的I/O特权级
+	unsigned NT : 1;  // 任务嵌套标志
+	unsigned Reserve4 : 1;
+	unsigned RF : 1;  // 调试异常相应控制标志位，为1禁止响应指令断点异常
+	unsigned VM : 1;  // 为1时启用虚拟8086模式
+	unsigned AC : 1;  // 内存对齐检查标志
+	unsigned VIF : 1;  // 虚拟中断标志
+	unsigned VIP : 1;  // 虚拟中断标志
+	unsigned ID : 1;  // CPUID检查标志
+	unsigned Reserve5 : 10;
+}EFLAGS, * PEFLAGS;
+
 // 初始化静态成员
 HANDLE User::m_hProcess = 0;
 HANDLE User::m_hThread = 0;
 void* User::m_pAddress = 0;
+HANDLE User::m_hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+//vector<MYMODULEINFO> User::m_vecModuleInfo;
 
 // 获取用户输入
 void User::GetUserInput()
@@ -129,13 +161,30 @@ void User::GetUserInput()
 			MyXEDParse::AsmToOpcode(m_hProcess, Address);
 			continue;
 		}
-		else if (!strcmp(inputStr, "r")) // 查看/修改寄存器
+		else if (!strcmp(inputStr, "rr")) // 查看寄存器
 		{
-			break;
+			SearchRegisterInfo();
+			continue;
+		}
+		else if (!strcmp(inputStr, "re")) // 修改寄存器
+		{
+			char regBuff[10] = { 0 };
+			DWORD data = 0;
+			cout << "输入要修改的寄存器: ";
+			scanf_s("%s", regBuff, 10);
+			cout << "输入要修改的值: ";
+			scanf_s("%X", &data);
+			ModifyRegisterInfo(regBuff, data);
+			continue;
 		}
 		else if (!strcmp(inputStr, "k")) // 查看栈
 		{
 			SearchStackInfo();
+			continue;
+		}
+		else if (!strcmp(inputStr, "m")) // 查看模块
+		{
+			ShowMyModuleInfo();
 			continue;
 		}
 		else if (!strcmp(inputStr, "h")) // 查看帮助
@@ -182,8 +231,10 @@ void User::ShowHelpManual()
 	cout << "\te(eb/ew/ed/ea/eu) - 修改内存" << endl;
 	cout << "\tu - 查看反汇编" << endl;
 	cout << "\ta - 修改反汇编" << endl;
-	cout << "\tr - 查看/修改寄存器" << endl;
+	cout << "\trr - 查看寄存器" << endl;
+	cout << "\tre - 修改寄存器" << endl;
 	cout << "\tk - 查看栈" << endl;
+	cout << "\tm - 查看模块" << endl;
 	cout << "\th - 查看帮助\n" << endl;
 }
 
@@ -212,8 +263,8 @@ void User::SearchMemoryInfo(DWORD address)
 	DWORD oldProtect = 0;
 	unsigned char ch = 0;
 	char tmpBuff[80] = { 0 };
-	char *buff = tmpBuff;
-
+	//char *buff = tmpBuff;
+	char* buff = new char[80];
 	// 修改内存保护属性
 	VirtualProtectEx(m_hProcess, (LPVOID)address, 80,
 		PAGE_EXECUTE_READWRITE, &oldProtect);
@@ -281,4 +332,251 @@ void User::SearchStackInfo()
 		++p;
 		address += sizeof(SIZE_T);
 	}
+}
+
+// 打印寄存器数据
+void User::PrintReg(SIZE_T reg, WORD color)
+{
+	SetConsoleTextAttribute(m_hStdOut, color);
+	printf(" %08X", reg);
+	SetConsoleTextAttribute(m_hStdOut, F_WHITE);
+	printf(" |");
+}
+
+// 打印标志寄存器数据
+void User::PrintEflag(DWORD flag, WORD color)
+{
+	SetConsoleTextAttribute(m_hStdOut, color);
+	printf("%3d ", flag);
+	SetConsoleTextAttribute(m_hStdOut, F_WHITE);
+	printf("|");
+}
+
+// 查看寄存器状态
+void User::ShowRegisterInfo(const CONTEXT& ct)
+{
+	static bool bFirst = true;
+	static CONTEXT preCT = { 0 };
+	if (bFirst)
+	{
+		bFirst = false;
+		preCT = ct;
+	}
+
+	printf("------------------------------------------------------------------\n");
+	printf("    eax   |    ecx   |    edx   |    ebx   |    esi   |    edi   |\n");
+	// EAX
+	if (preCT.Eax != ct.Eax)
+		PrintReg(ct.Eax, F_H_RED);
+	else
+		PrintReg(ct.Eax, F_WHITE);
+	// ECX
+	if (preCT.Ecx != ct.Ecx)
+		PrintReg(ct.Ecx, F_H_RED);
+	else
+		PrintReg(ct.Ecx, F_WHITE);
+	// EDX
+	if (preCT.Edx != ct.Edx)
+		PrintReg(ct.Edx, F_H_RED);
+	else
+		PrintReg(ct.Edx, F_WHITE);
+	// EBX
+	if (preCT.Ebx != ct.Ebx)
+		PrintReg(ct.Ebx, F_H_RED);
+	else
+		PrintReg(ct.Ebx, F_WHITE);
+	// ESI
+	if (preCT.Esi != ct.Esi)
+		PrintReg(ct.Esi, F_H_RED);
+	else
+		PrintReg(ct.Esi, F_WHITE);
+	// EDI
+	if (preCT.Edi != ct.Edi)
+		PrintReg(ct.Edi, F_H_RED);
+	else
+		PrintReg(ct.Edi, F_WHITE);
+	printf("\n");
+
+	// 打印栈顶、栈底、标志位寄存器
+	printf("    esp   |    ebp   ||||| CF | PF | AF | ZF | SF | TF | DF | OF |\n");
+	PEFLAGS pEflags = (PEFLAGS)& ct.EFlags;
+	PEFLAGS pPreEflags = (PEFLAGS)& preCT.EFlags;
+	// ESP
+	if (preCT.Esp != ct.Esp)
+		PrintReg(ct.Esp, F_H_RED);
+	else
+		PrintReg(ct.Esp, F_WHITE);
+	// EBP
+	if (preCT.Ebp != ct.Ebp)
+		PrintReg(ct.Ebp, F_H_RED);
+	else
+		PrintReg(ct.Ebp, F_WHITE);
+
+	printf("||||");
+
+	// CF
+	if (pPreEflags->CF != pEflags->CF)
+		PrintEflag(pEflags->CF, F_H_RED);
+	else
+		PrintEflag(pEflags->CF, F_WHITE);
+	// PF
+	if (pPreEflags->PF != pEflags->PF)
+		PrintEflag(pEflags->PF, F_H_RED);
+	else
+		PrintEflag(pEflags->PF, F_WHITE);
+	// AF
+	if (pPreEflags->AF != pEflags->AF)
+		PrintEflag(pEflags->AF, F_H_RED);
+	else
+		PrintEflag(pEflags->AF, F_WHITE);
+	// ZF
+	if (pPreEflags->ZF != pEflags->ZF)
+		PrintEflag(pEflags->ZF, F_H_RED);
+	else
+		PrintEflag(pEflags->ZF, F_WHITE);
+	// SF
+	if (pPreEflags->SF != pEflags->SF)
+		PrintEflag(pEflags->SF, F_H_RED);
+	else
+		PrintEflag(pEflags->SF, F_WHITE);
+	// TF
+	if (pPreEflags->TF != pEflags->TF)
+		PrintEflag(pEflags->TF, F_H_RED);
+	else
+		PrintEflag(pEflags->TF, F_WHITE);
+	// DF
+	if (pPreEflags->DF != pEflags->DF)
+		PrintEflag(pEflags->DF, F_H_RED);
+	else
+		PrintEflag(pEflags->DF, F_WHITE);
+	// OF
+	if (pPreEflags->OF != pEflags->OF)
+		PrintEflag(pEflags->OF, F_H_RED);
+	else
+		PrintEflag(pEflags->OF, F_WHITE);
+	printf("\n");
+
+	printf("--> eip  %08X\n", ct.Eip);
+	preCT = ct;
+	printf("------------------------------------------------------------------\n");
+}
+
+// 查看寄存器的值
+void User::SearchRegisterInfo()
+{
+	CONTEXT ct = { CONTEXT_ALL };
+	GetThreadContext(m_hThread, &ct);
+
+	printf("------------------------------------------------------------------\n");
+	printf("    eax   |    ecx   |    edx   |    ebx   |    esi   |    edi   |\n");
+	// EAX
+	PrintReg(ct.Eax, F_WHITE);
+	PrintReg(ct.Ecx, F_WHITE);
+	PrintReg(ct.Edx, F_WHITE);
+	PrintReg(ct.Ebx, F_WHITE);
+	PrintReg(ct.Esi, F_WHITE);
+	PrintReg(ct.Edi, F_WHITE);
+	printf("\n");
+
+	// 打印栈顶、栈底、标志位寄存器
+	printf("    esp   |    ebp   ||||| CF | PF | AF | ZF | SF | TF | DF | OF |\n");
+	PEFLAGS pEflags = (PEFLAGS)& ct.EFlags;
+	PrintReg(ct.Esp, F_WHITE);
+	PrintReg(ct.Ebp, F_WHITE);
+
+	printf("||||");
+
+	PrintEflag(pEflags->CF, F_WHITE);
+	PrintEflag(pEflags->PF, F_WHITE);
+	PrintEflag(pEflags->AF, F_WHITE);
+	PrintEflag(pEflags->ZF, F_WHITE);
+	PrintEflag(pEflags->SF, F_WHITE);
+	PrintEflag(pEflags->TF, F_WHITE);
+	PrintEflag(pEflags->DF, F_WHITE);
+	PrintEflag(pEflags->OF, F_WHITE);
+	printf("\n");
+
+	printf("--> eip  %08X\n", ct.Eip);
+
+}
+
+// 修改寄存器的值
+void User::ModifyRegisterInfo(const char* regBuff, DWORD data)
+{
+	CONTEXT ct = { CONTEXT_ALL };
+	GetThreadContext(m_hThread, &ct);
+
+	// EAX
+	if (!strcmp(regBuff, "eax"))
+		ct.Eax = data;
+	// ECX
+	else if (!strcmp(regBuff, "ecx"))
+		ct.Ecx = data;
+	// EDX
+	else if (!strcmp(regBuff, "edx"))
+		ct.Edx = data;
+	// EBX
+	else if (!strcmp(regBuff, "ebx"))
+		ct.Ebx = data;
+	// ESI
+	else if (!strcmp(regBuff, "esi"))
+		ct.Esi = data;
+	// EDI
+	else if (!strcmp(regBuff, "edi"))
+		ct.Edi = data;
+	// ESP
+	else if (!strcmp(regBuff, "esp"))
+		ct.Esp = data;
+	// EBP
+	else if (!strcmp(regBuff, "ebp"))
+		ct.Ebp = data;
+	
+	SetThreadContext(m_hThread, &ct);
+}
+
+// 查看模块信息
+void User::ShowMyModuleInfo()
+{
+	// 自定义模块结构体，存到向量中
+	MYMODULEINFO stcModule = { 0 };
+	vector<MYMODULEINFO> vecModuleInfo;
+
+	// 枚举进程模块
+	DWORD dwNeed = 0;
+	// 第一次获取模块个数
+	EnumProcessModulesEx(m_hProcess, nullptr, 0, &dwNeed, LIST_MODULES_ALL);
+	DWORD dwModuleCount = dwNeed / sizeof(HMODULE); // dwNeed 是所有模块的大小
+	// 根据获取的个数申请缓存
+	HMODULE* pModule = new HMODULE[dwModuleCount];
+	// 第二次获取模块信息到 pModule
+	EnumProcessModulesEx(m_hProcess, pModule, dwNeed, &dwNeed, LIST_MODULES_ALL);
+	// 存储路径
+	char path[MAX_PATH] = { 0 };
+	// 存储模块信息结构体（系统）
+	MODULEINFO mi = { 0 };
+	// 循环获取模块详细信息
+	for (size_t i = 0; i < dwModuleCount; ++i)
+	{
+		// 获取模块路径
+		GetModuleFileNameExA(m_hProcess, pModule[i], path, MAX_PATH);
+		GetModuleInformation(m_hProcess, pModule[i], &mi, sizeof(MODULEINFO));
+		LPSTR tmp = PathFindFileNameA(path);
+		memcpy(stcModule.name, tmp, MAX_PATH); // 名字
+		stcModule.startAddress = (DWORD)mi.lpBaseOfDll; // 加载基址
+		stcModule.nSize = mi.SizeOfImage; // 大小
+		vecModuleInfo.push_back(stcModule);
+	}
+	// 显示信息
+	printf("+------------------+----------+----------------------------------------------------+\n");
+	printf("|     加载基址     + 模块大小 |                    模块名                          |\n");
+	printf("+------------------+----------+----------------------------------------------------+\n");
+	for (size_t i = 0; i < vecModuleInfo.size(); ++i)
+	{
+		printf("| %08X | %08X | %-50s |\n",
+			vecModuleInfo[i].startAddress,
+			vecModuleInfo[i].nSize,
+			vecModuleInfo[i].name);
+	}
+	printf("+------------------+----------+----------------------------------------------------+\n");
+	delete[] pModule;
 }

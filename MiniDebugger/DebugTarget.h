@@ -44,5 +44,8 @@ private:
 
 	// 是否需要用户输入
 	bool m_bNeedInput;
+
+	// 寄存器状态
+	CONTEXT m_stcCT;
 };
 

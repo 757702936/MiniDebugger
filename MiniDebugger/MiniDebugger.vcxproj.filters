@@ -56,5 +56,8 @@
     <ClInclude Include="MyCapstone.h">
       <Filter>04-反汇编引擎</Filter>
     </ClInclude>
+    <ClInclude Include="HightLight.h">
+      <Filter>03-用户交互</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

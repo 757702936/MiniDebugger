@@ -1,5 +1,15 @@
 #pragma once
 #include <Windows.h>
+#include <vector>
+using namespace std;
+
+// 模块信息结构体
+typedef struct _MYMODULEINFO
+{
+	char name[MAX_PATH];
+	DWORD startAddress;
+	DWORD nSize;
+} MYMODULEINFO;
 
 
 // 用户交互：显示界面，获取用户输入，设置断点...
@@ -36,6 +46,24 @@ public:
 	// 查看栈信息
 	static void SearchStackInfo();
 
+	// 打印寄存器数据
+	static void PrintReg(SIZE_T reg, WORD color);
+
+	// 打印标志寄存器数据
+	static void PrintEflag(DWORD flag, WORD color);
+
+	// 查看寄存器状态
+	static void ShowRegisterInfo(const CONTEXT& ct);
+	
+	// 查看寄存器的值
+	static void SearchRegisterInfo();
+
+	// 修改寄存器的值
+	static void ModifyRegisterInfo(const char* regBuff, DWORD data);
+
+	// 查看模块信息
+	static void ShowMyModuleInfo();
+
 private:
 	// 进程句柄
 	static HANDLE m_hProcess;
@@ -43,5 +71,9 @@ private:
 	static HANDLE m_hThread;
 	// 异常地址
 	static void* m_pAddress;
+	// 控制台输出句柄
+	static HANDLE m_hStdOut;
+	// 存储模块信息
+	//static vector<MYMODULEINFO> m_vecModuleInfo;
 };
 

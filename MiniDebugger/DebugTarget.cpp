@@ -20,6 +20,8 @@ DebugTarget::DebugTarget()
 	m_bNeedInput = true;
 	// OEP
 	m_OEP = 0;
+	// 寄存器状态
+	m_stcCT = { 0 };
 }
 
 
@@ -70,7 +72,7 @@ void DebugTarget::DebugLoop()
 		User::GetProcessHandle(m_hProcess);
 		User::GetThreadHandle(m_hThread);
 		User::GetExceptionAddress(m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionAddress);
-
+		
 		// 分派调试事件
 		result = DispatchDebugEvent();
 
@@ -171,6 +173,10 @@ DWORD DebugTarget::OnHandleException()
 	// 如果需要断下并接收输入
 	if (m_bNeedInput)
 	{
+		system("cls");
+		m_stcCT.ContextFlags = CONTEXT_ALL;
+		GetThreadContext(m_hThread, &m_stcCT);
+		User::ShowRegisterInfo(m_stcCT);
 		MyCapstone::DisAsm(m_hProcess, (LPVOID)ExceptionAddress, 10);
 		User::GetUserInput();
 	}
