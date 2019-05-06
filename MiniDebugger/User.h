@@ -73,7 +73,5 @@ private:
 	static void* m_pAddress;
 	// 控制台输出句柄
 	static HANDLE m_hStdOut;
-	// 存储模块信息
-	//static vector<MYMODULEINFO> m_vecModuleInfo;
 };
 

@@ -16,6 +16,8 @@ public:// 设置为默认构造函数
 	static void Init();
 	// 用于执行反汇编的函数
 	static void DisAsm(HANDLE Handle, LPVOID Addr, DWORD Count);
+	// 获取指令长度
+	static UINT GetOpcodeLen(HANDLE Handle, LPVOID Addr, DWORD Count);
 
 private:
 	// 用于初始化和内存管理的句柄

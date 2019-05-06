@@ -51,7 +51,6 @@ HANDLE User::m_hProcess = 0;
 HANDLE User::m_hThread = 0;
 void* User::m_pAddress = 0;
 HANDLE User::m_hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
-//vector<MYMODULEINFO> User::m_vecModuleInfo;
 
 // 获取用户输入
 void User::GetUserInput()
@@ -115,6 +114,36 @@ void User::GetUserInput()
 		}
 		else if (!strcmp(inputStr, "p")) // 单步步过
 		{
+			CONTEXT ct = { CONTEXT_ALL };
+			BYTE c[2] = { 0 };
+			DWORD	dwRead = 0;
+
+			GetThreadContext(m_hThread, &ct);
+			ReadProcessMemory(m_hProcess, m_pAddress, c, 2, &dwRead);
+			/**
+			* call 的机器码有:
+			* 0xe8 : 5byte,
+			* 0x9a : 7byte,
+			* 0xff :
+			*	 0x10ff ~ 0x1dff
+			* rep 前缀的指令也可以步过
+			*/
+			if (c[0] == 0xe8/*call*/
+				|| c[0] == 0xf3/*rep*/
+				|| c[0] == 0x9a/*call*/
+				|| (c[0] == 0xff && 0x10 <= c[1] && c[1] <= 0x1d)/*call*/
+				)
+			{
+				DWORD len = MyCapstone::GetOpcodeLen(m_hProcess, m_pAddress, 10);
+				ct.Eip += len;
+				BreakPoint::SetBreadPoint_Soft(m_hProcess, ct.Eip);
+			}
+			else
+			{
+				BreakPoint::SetBreakPoint_TF(m_hThread);
+			}
+			
+
 			break;
 		}
 		else if (!strcmp(inputStr, "gr")) // 运行到返回
@@ -191,7 +220,7 @@ void User::GetUserInput()
 		{
 			system("cls");
 			ShowHelpManual();
-			break;
+			continue;
 		}
 		else
 		{

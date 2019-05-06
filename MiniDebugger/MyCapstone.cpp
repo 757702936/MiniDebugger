@@ -50,3 +50,18 @@ void MyCapstone::DisAsm(HANDLE Handle, LPVOID Addr, DWORD Count)
 	delete[] buff;
 	cs_free(ins, count);
 }
+
+// 获取指令长度
+UINT MyCapstone::GetOpcodeLen(HANDLE Handle, LPVOID Addr, DWORD Count)
+{
+	// 用来读取指令位置内存的缓冲区信息
+	cs_insn* ins = nullptr;
+	PCHAR buff = new CHAR[Count * 16]{ 0 };
+
+	// 读取指定长度的内存空间
+	DWORD dwWrite = 0;
+	ReadProcessMemory(Handle, (LPVOID)Addr, buff, Count * 16, &dwWrite);
+	cs_disasm(MyCapstone::Handle, (uint8_t*)buff, Count * 16, (uint64_t)Addr, 0, &ins);
+
+	return ins->size;
+}

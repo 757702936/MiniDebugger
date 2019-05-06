@@ -43,23 +43,19 @@ void MyXEDParse::AsmToOpcode(HANDLE hProcess, DWORD address)
 		//continue;
 		return;
 	}
-	xed.instr;
-
 	// 打印汇编指令所生成的opcode
-	printf("%08X : ", (unsigned int)xed.cip);
-	printOpcode(xed.dest, xed.dest_size);
-	printf("\n");
+	//printf("%08X : ", (unsigned int)xed.cip);
+	//printOpcode(xed.dest, xed.dest_size);
+	//printf("\n");
 
 	// 修改内存保护属性
 	VirtualProtectEx(hProcess, (LPVOID)address, xed.dest_size,
 		PAGE_EXECUTE_READWRITE, &oldProtect);
-	// 获取到原有数据保存到结构体
-	// ReadProcessMemory(hProcess, (LPVOID)address, &stcBP_Soft.u.oldOpcode, 1, &byte);
-	// 将 0xCC 写入到目标位置
 	WriteProcessMemory(hProcess, (LPVOID)address, xed.dest, xed.dest_size, &byte);
 	// 还原内存保护属性
 	VirtualProtectEx(hProcess, (LPVOID)address, xed.dest_size, oldProtect, &oldProtect);
 
 	// 将地址增加到下一条指令的首地址
-	xed.cip += xed.dest_size;
+	//xed.cip += xed.dest_size;
 }
+
