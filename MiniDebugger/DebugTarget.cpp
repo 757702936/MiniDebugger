@@ -69,6 +69,7 @@ void DebugTarget::DebugLoop()
 		// 用户类获取句柄
 		User::GetProcessHandle(m_hProcess);
 		User::GetThreadHandle(m_hThread);
+		User::GetExceptionAddress(m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionAddress);
 
 		// 分派调试事件
 		result = DispatchDebugEvent();
@@ -114,7 +115,7 @@ DWORD DebugTarget::DispatchDebugEvent()
 		// 产生异常信息事件
 		case EXCEPTION_DEBUG_EVENT:
 		{
-			result = OnHandleException(m_stcDbEvent.u.Exception);
+			result = OnHandleException();
 			break;
 		}
 		// 其余情况也返回已处理
@@ -127,12 +128,12 @@ DWORD DebugTarget::DispatchDebugEvent()
 }
 
 // 处理异常
-DWORD DebugTarget::OnHandleException(EXCEPTION_DEBUG_INFO& ExceptionInfo)
+DWORD DebugTarget::OnHandleException()
 {
 	// 异常类型
-	DWORD ExceptionCode = ExceptionInfo.ExceptionRecord.ExceptionCode;
+	DWORD ExceptionCode = m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionCode;
 	// 异常地址
-	DWORD ExceptionAddress = (DWORD)ExceptionInfo.ExceptionRecord.ExceptionAddress;
+	DWORD ExceptionAddress = (DWORD)m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionAddress;
 
 	switch (ExceptionCode)
 	{

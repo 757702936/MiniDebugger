@@ -46,7 +46,7 @@ void MyXEDParse::AsmToOpcode(HANDLE hProcess, DWORD address)
 	xed.instr;
 
 	// 打印汇编指令所生成的opcode
-	printf("%08X : ", xed.cip);
+	printf("%08X : ", (unsigned int)xed.cip);
 	printOpcode(xed.dest, xed.dest_size);
 	printf("\n");
 

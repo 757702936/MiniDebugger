@@ -26,7 +26,7 @@ BreakPoint::~BreakPoint()
 {
 }
 
-// 初始化 向量
+// 初始化静态变量
 vector<BreakPointInfo> BreakPoint::m_vecBP;
 
 // 设置TF断点
@@ -43,6 +43,7 @@ bool BreakPoint::SetBreakPoint_TF(HANDLE hThread)
 	}
 	// 把 TF 标志位改为 1， TF标志位在 Flags 寄存器的第 8 位，CPU会自动重置 TF 位
 	ct.EFlags |= 0x100;
+
 	// 将修改后的寄存器状态设置到目标线程
 	bool setResult = SetThreadContext(hThread, &ct);
 	if (!setResult)

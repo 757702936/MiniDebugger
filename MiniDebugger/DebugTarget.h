@@ -24,7 +24,7 @@ public:
 	DWORD DispatchDebugEvent();
 
 	// 处理异常
-	DWORD OnHandleException(EXCEPTION_DEBUG_INFO& ExceptionInfo);
+	DWORD OnHandleException();
 
 private:
 	// 调试信息
