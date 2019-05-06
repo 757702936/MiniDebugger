@@ -1,16 +1,16 @@
 #pragma once
 #include <Windows.h>
-#include "Capstone/include/capstone.h"
-#pragma comment(lib,"capstone/capstone.lib")
+#include "Capstone/include/Capstone.h"
+#pragma comment(lib,"Capstone/Capstone.lib")
 #pragma comment(linker, "/NODEFAULTLIB:\"libcmtd.lib\"")
 
 // 工具类
 // 反汇编引擎
-class Capstone
+class MyCapstone
 {
 public:// 设置为默认构造函数
-	Capstone() = default;
-	~Capstone() = default;
+	MyCapstone() = default;
+	~MyCapstone() = default;
 
 	// 用于初始化函数
 	static void Init();

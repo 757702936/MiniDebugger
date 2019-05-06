@@ -1,11 +1,11 @@
-#include "Capstone.h"
+#include "MyCapstone.h"
 
 // 初始化静态变量
-csh Capstone::Handle = { 0 };
-cs_opt_mem Capstone::OptMem = { 0 };
+csh MyCapstone::Handle = { 0 };
+cs_opt_mem MyCapstone::OptMem = { 0 };
 
 // 用于初始化函数
-void Capstone::Init()
+void MyCapstone::Init()
 {
 	// 配置堆空间的回调函数
 	OptMem.free = free;
@@ -18,11 +18,11 @@ void Capstone::Init()
 	cs_option(NULL, CS_OPT_MEM, (size_t)& OptMem);
 
 	// 打开一个句柄
-	cs_open(CS_ARCH_X86, CS_MODE_32, &Capstone::Handle);
+	cs_open(CS_ARCH_X86, CS_MODE_32, &MyCapstone::Handle);
 }
 
 // 反汇编指定条数的语句
-void Capstone::DisAsm(HANDLE Handle, LPVOID Addr, DWORD Count)
+void MyCapstone::DisAsm(HANDLE Handle, LPVOID Addr, DWORD Count)
 {
 	// 用来读取指令位置内存的缓冲区信息
 	cs_insn* ins = nullptr;
@@ -31,7 +31,7 @@ void Capstone::DisAsm(HANDLE Handle, LPVOID Addr, DWORD Count)
 	// 读取指定长度的内存空间
 	DWORD dwWrite = 0;
 	ReadProcessMemory(Handle, (LPVOID)Addr, buff, Count * 16, &dwWrite);
-	int count = cs_disasm(Capstone::Handle, (uint8_t*)buff, Count * 16, (uint64_t)Addr, 0, &ins);
+	int count = cs_disasm(MyCapstone::Handle, (uint8_t*)buff, Count * 16, (uint64_t)Addr, 0, &ins);
 	for (DWORD i = 0; i < Count; ++i)
 	{
 		printf("%08X\t", (UINT)ins[i].address);

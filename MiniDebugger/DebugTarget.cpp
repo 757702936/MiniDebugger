@@ -1,5 +1,5 @@
 #include "DebugTarget.h"
-#include "Capstone.h"
+#include "MyCapstone.h"
 #include "User.h"
 #include "BreakPoint.h"
 #include <iostream>
@@ -48,7 +48,7 @@ bool DebugTarget::open(const char* file)
 	CloseHandle(pi.hProcess);
 
 	// 初始化反汇编引擎
-	Capstone::Init();
+	MyCapstone::Init();
 
 	return true;
 }
@@ -170,7 +170,7 @@ DWORD DebugTarget::OnHandleException(EXCEPTION_DEBUG_INFO& ExceptionInfo)
 	// 如果需要断下并接收输入
 	if (m_bNeedInput)
 	{
-		Capstone::DisAsm(m_hProcess, (LPVOID)ExceptionAddress, 10);
+		MyCapstone::DisAsm(m_hProcess, (LPVOID)ExceptionAddress, 10);
 		User::GetUserInput();
 	}
 

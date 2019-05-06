@@ -15,7 +15,10 @@
     <Filter Include="03-用户交互">
       <UniqueIdentifier>{b5a91d95-2a17-4222-9d34-71dbdfc0b402}</UniqueIdentifier>
     </Filter>
-    <Filter Include="04-反汇编">
+    <Filter Include="05-汇编引擎">
+      <UniqueIdentifier>{ac0cfd45-b0d0-41f1-8d23-5a70ed10497b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04-反汇编引擎">
       <UniqueIdentifier>{48de6b4e-1e1f-4ec3-b8b1-9ee872252bf9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -27,11 +30,14 @@
     <ClCompile Include="User.cpp">
       <Filter>03-用户交互</Filter>
     </ClCompile>
-    <ClCompile Include="Capstone.cpp">
-      <Filter>04-反汇编</Filter>
-    </ClCompile>
     <ClCompile Include="BreakPoint.cpp">
       <Filter>02-断点</Filter>
+    </ClCompile>
+    <ClCompile Include="MyXEDParse.cpp">
+      <Filter>05-汇编引擎</Filter>
+    </ClCompile>
+    <ClCompile Include="MyCapstone.cpp">
+      <Filter>04-反汇编引擎</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -41,11 +47,14 @@
     <ClInclude Include="User.h">
       <Filter>03-用户交互</Filter>
     </ClInclude>
-    <ClInclude Include="Capstone.h">
-      <Filter>04-反汇编</Filter>
-    </ClInclude>
     <ClInclude Include="BreakPoint.h">
       <Filter>02-断点</Filter>
+    </ClInclude>
+    <ClInclude Include="MyXEDParse.h">
+      <Filter>05-汇编引擎</Filter>
+    </ClInclude>
+    <ClInclude Include="MyCapstone.h">
+      <Filter>04-反汇编引擎</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

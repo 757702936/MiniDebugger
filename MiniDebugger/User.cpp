@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 #include "BreakPoint.h"
+#include "MyCapstone.h"
+#include "MyXEDParse.h"
 
 using namespace std;
 
@@ -30,7 +32,7 @@ void User::GetUserInput()
 			DWORD Address = 0;
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
-			BreakPoint::SetBreadPoint_Soft(m_hProcess, (DWORD)Address);
+			BreakPoint::SetBreadPoint_Soft(m_hProcess, Address);
 			break;
 		}
 		else if (!strcmp(inputStr, "bm")) // 设置内存断点
@@ -101,12 +103,24 @@ void User::GetUserInput()
 		{
 			break;
 		}
-		else if (!strcmp(inputStr, "u")) // 查看反汇编
-		{
-			break;
-		}
+		//else if (!strcmp(inputStr, "u")) // 查看反汇编
+		//{
+		//	CONTEXT ct = { 0 };
+		//	ct.ContextFlags = CONTEXT_CONTROL;
+		//	GetThreadContext(m_hThread, &ct);
+		//	BYTE buff[512];
+		//	DWORD dwRead = 0;
+		//	ReadProcessMemory(m_hProcess, (LPVOID)ct.Eip, buff, 512, &dwRead);
+		//	MyCapstone::DisAsm(m_hProcess, (LPVOID)ct.Eip, 10);
+		//	break;
+		//}
 		else if (!strcmp(inputStr, "a")) // 修改反汇编
 		{
+			DWORD Address = 0;
+			cout << "输入要设置的地址: ";
+			scanf_s("%x", &Address);
+			MyXEDParse::AsmToOpcode(m_hProcess, Address);
+			BreakPoint::SetBreadPoint_Soft(m_hProcess, Address);
 			break;
 		}
 		else if (!strcmp(inputStr, "r")) // 查看/修改寄存器

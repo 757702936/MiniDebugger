@@ -124,16 +124,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BreakPoint.cpp" />
-    <ClCompile Include="Capstone.cpp" />
+    <ClCompile Include="MyCapstone.cpp" />
     <ClCompile Include="DebugTarget.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="User.cpp" />
+    <ClCompile Include="MyXEDParse.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BreakPoint.h" />
-    <ClInclude Include="Capstone.h" />
+    <ClInclude Include="MyCapstone.h" />
     <ClInclude Include="DebugTarget.h" />
     <ClInclude Include="User.h" />
+    <ClInclude Include="MyXEDParse.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

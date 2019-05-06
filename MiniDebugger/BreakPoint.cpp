@@ -222,57 +222,5 @@ void BreakPoint::FixBreakPoint_Hard(HANDLE hThread, DWORD address)
 			m_vecBP.erase(m_vecBP.begin() + i);
 			break;
 		}
-		/* 读
-		else if (m_vecBP[i].bpFlag == bp_hardr
-			&& m_vecBP[i].ExceptionAddress == address)
-		{
-			 获取调试寄存器
-			CONTEXT ct = { CONTEXT_DEBUG_REGISTERS };
-			GetThreadContext(hThread, &ct);
-
-			 获取 Dr7 寄存器
-			PR7 Dr7 = (PR7)& ct.Dr7;
-			 根据 Dr6 的低 4 位知道是谁被触发了
-			int index = ct.Dr6 & 0xF;
-			 将触发的断点设置成无效的
-			switch (index)
-			{
-			case 1: Dr7->L0 = 0; break;
-			case 3: Dr7->L1 = 0; break;
-			case 4: Dr7->L2 = 0; break;
-			case 8: Dr7->L3 = 0; break;
-			}
-			 将修改更新到线程
-			SetThreadContext(hThread, &ct);
-
-			m_vecBP.erase(m_vecBP.begin() + i);
-			break;
-		}
-		 写
-		else if (m_vecBP[i].bpFlag == bp_hardw
-			&& m_vecBP[i].ExceptionAddress == address)
-		{
-			 获取调试寄存器
-			CONTEXT ct = { CONTEXT_DEBUG_REGISTERS };
-			GetThreadContext(hThread, &ct);
-
-			 获取 Dr7 寄存器
-			PR7 Dr7 = (PR7)& ct.Dr7;
-			 根据 Dr6 的低 4 位知道是谁被触发了
-			int index = ct.Dr6 & 0xF;
-			 将触发的断点设置成无效的
-			switch (index)
-			{
-			case 1: Dr7->L0 = 0; break;
-			case 3: Dr7->L1 = 0; break;
-			case 4: Dr7->L2 = 0; break;
-			case 8: Dr7->L3 = 0; break;
-			}
-			 将修改更新到线程
-			SetThreadContext(hThread, &ct);
-
-			m_vecBP.erase(m_vecBP.begin() + i);
-			break;
-		}*/
 	} // for
 }
