@@ -64,6 +64,9 @@ public:
 	// 查看模块信息
 	static void ShowMyModuleInfo();
 
+	// 返回用户输入的 内存执行断点地址
+	static DWORD ReturnInputAddress();
+
 private:
 	// 进程句柄
 	static HANDLE m_hProcess;
@@ -73,5 +76,7 @@ private:
 	static void* m_pAddress;
 	// 控制台输出句柄
 	static HANDLE m_hStdOut;
+	// 存储用户输入的 内存执行断点地址
+	static DWORD m_dwMemExcAddress;
 };
 

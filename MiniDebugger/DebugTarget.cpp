@@ -132,11 +132,14 @@ DWORD DebugTarget::DispatchDebugEvent()
 // 处理异常
 DWORD DebugTarget::OnHandleException()
 {
+	DWORD dwOldProtect = 0;
 	// 异常类型
 	DWORD ExceptionCode = m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionCode;
 	// 异常地址
 	DWORD ExceptionAddress = (DWORD)m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionAddress;
 
+	DWORD MemoryExceptionAddress = m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionInformation[1];
+	BreakPoint::GetMemoryExceptionAddress(MemoryExceptionAddress);
 	switch (ExceptionCode)
 	{
 		// 修复软件断点
@@ -160,12 +163,15 @@ DWORD DebugTarget::OnHandleException()
 		// 修复硬件断点
 		case EXCEPTION_SINGLE_STEP:
 		{
-			BreakPoint::FixBreakPoint_Hard(m_hThread, ExceptionAddress);
+			bool bTemp = BreakPoint::FixBreakPoint_Hard(m_hProcess, m_hThread, ExceptionAddress);
+			m_bNeedInput = bTemp;
 			break;
 		}
 		// 修复内存断点
 		case EXCEPTION_ACCESS_VIOLATION:
 		{
+			bool bTemp = BreakPoint::FixBreakPoint_Mem(m_hProcess, m_hThread, MemoryExceptionAddress);
+			m_bNeedInput = bTemp;
 			break;
 		}
 	}

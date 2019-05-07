@@ -1,4 +1,5 @@
 #include "BreakPoint.h"
+#include "User.h"
 #include <iostream>
 using namespace std;
 
@@ -28,6 +29,10 @@ BreakPoint::~BreakPoint()
 
 // 初始化静态变量
 vector<BreakPointInfo> BreakPoint::m_vecBP;
+DWORD BreakPoint::m_dwMemExceptionAddr = 0;
+DWORD BreakPoint::m_dwOldProtect = 0;
+bool BreakPoint::m_bIsMeme = false;
+
 
 // 设置TF断点
 bool BreakPoint::SetBreakPoint_TF(HANDLE hThread)
@@ -191,13 +196,12 @@ void BreakPoint::SetBreakPoint_Hard(HANDLE hThread, DWORD address, DWORD Type, D
 }
 
 // 修复硬件断点
-void BreakPoint::FixBreakPoint_Hard(HANDLE hThread, DWORD address)
+bool BreakPoint::FixBreakPoint_Hard(HANDLE hProcess, HANDLE hThread, DWORD address)
 {
 	// 修复的过程中，首先要知道是什么断点
 	for (size_t i = 0; i < m_vecBP.size(); ++i)
 	{
 		// 判断断点类型和地址是否匹配
-		// 执行
 		if (m_vecBP[i].bpFlag == bp_harde
 			&& m_vecBP[i].ExceptionAddress == address)
 		{
@@ -224,4 +228,100 @@ void BreakPoint::FixBreakPoint_Hard(HANDLE hThread, DWORD address)
 			break;
 		}
 	} // for
+
+	// 用于再次设置内存执行断点
+	if (m_bIsMeme)
+	{
+		m_bIsMeme = false;
+		VirtualProtectEx(hProcess, (LPVOID)User::ReturnInputAddress(), 1,
+			PAGE_NOACCESS, &m_dwOldProtect);
+		return false;
+	}
+		
+	return true;
+}
+
+// 设置内存断点
+void BreakPoint::SetBreakPoint_Mem(HANDLE hProcess, DWORD address, DWORD type)
+{
+	//DWORD oldProtect = 0;
+	BreakPointInfo stcBP_Mem;
+
+	// 读取
+	if (0 == type)
+	{
+		stcBP_Mem = { bp_memr, address };
+		VirtualProtectEx(hProcess, (LPVOID)address, 1,
+			PAGE_NOACCESS, &m_dwOldProtect);
+	}
+	// 写入
+	else if(1 == type)
+	{
+		stcBP_Mem = { bp_memw, address };
+		VirtualProtectEx(hProcess, (LPVOID)address, 1,
+			PAGE_READONLY, &m_dwOldProtect);
+	}
+	// 执行
+	else if (8 == type)
+	{
+		stcBP_Mem = { bp_meme, address };
+		VirtualProtectEx(hProcess, (LPVOID)address, 1,
+			PAGE_NOACCESS, &m_dwOldProtect);
+	}
+
+	// 保存断点
+	m_vecBP.push_back(stcBP_Mem);
+}
+
+// 修复内存断点
+bool BreakPoint::FixBreakPoint_Mem(HANDLE hProcess, HANDLE hThread, DWORD address)
+{
+	for (size_t i = 0; i < m_vecBP.size(); ++i)
+	{
+		// 判断断点类型和地址是否匹配
+		// 读取
+		if (m_vecBP[i].bpFlag == bp_memr
+			&& m_vecBP[i].ExceptionAddress == address)
+		{
+			// 还原内存保护属性
+			VirtualProtectEx(hProcess, (LPVOID)address, 1,
+				m_dwOldProtect, &m_dwOldProtect);
+			m_vecBP.erase(m_vecBP.begin() + i);
+		}
+		// 写入
+		else if (m_vecBP[i].bpFlag == bp_memw
+			&& m_vecBP[i].ExceptionAddress == address)
+		{
+			// 还原内存保护属性
+			VirtualProtectEx(hProcess, (LPVOID)address, 1,
+				m_dwOldProtect, &m_dwOldProtect);
+			m_vecBP.erase(m_vecBP.begin() + i);
+		}
+		// 执行
+		else if (m_vecBP[i].bpFlag == bp_meme
+			&& m_vecBP[i].ExceptionAddress == m_dwMemExceptionAddr)
+		{
+			// 还原内存保护属性
+			VirtualProtectEx(hProcess, (LPVOID)address, 1,
+				m_dwOldProtect, &m_dwOldProtect);
+			m_vecBP.erase(m_vecBP.begin() + i);
+		}
+		// 否则设置 TF 断点，直到异常地址 与 执行断点匹配
+		else
+		{
+			// 还原内存保护属性
+			VirtualProtectEx(hProcess, (LPVOID)address, 1,
+				m_dwOldProtect, &m_dwOldProtect);
+			SetBreakPoint_TF(hThread);
+			m_bIsMeme = true;
+			return false;
+		}
+	}
+	return true;
+}
+
+// 获取内存执行断点异常地址
+void BreakPoint::GetMemoryExceptionAddress(DWORD address)
+{
+	m_dwMemExceptionAddr = address;
 }

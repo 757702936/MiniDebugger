@@ -51,6 +51,8 @@ HANDLE User::m_hProcess = 0;
 HANDLE User::m_hThread = 0;
 void* User::m_pAddress = 0;
 HANDLE User::m_hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+DWORD User::m_dwMemExcAddress = 0;
+
 
 // 获取用户输入
 void User::GetUserInput()
@@ -65,11 +67,31 @@ void User::GetUserInput()
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
 			BreakPoint::SetBreadPoint_Soft(m_hProcess, Address);
-			break;
+			continue;
 		}
-		else if (!strcmp(inputStr, "bm")) // 设置内存断点
+		else if (!strcmp(inputStr, "bme")) // 设置内存执行断点
 		{
-			break;
+			//DWORD Address = 0;
+			cout << "输入要设置的地址: ";
+			scanf_s("%x", &m_dwMemExcAddress);
+			BreakPoint::SetBreakPoint_Mem(m_hProcess, m_dwMemExcAddress, 8);
+			continue;
+		}
+		else if (!strcmp(inputStr, "bmr")) // 设置内存读断点
+		{
+			DWORD Address = 0;
+			cout << "输入要设置的地址: ";
+			scanf_s("%x", &Address);
+			BreakPoint::SetBreakPoint_Mem(m_hProcess, Address, 0);
+			continue;
+		}
+		else if (!strcmp(inputStr, "bmw")) // 设置内存写断点
+		{
+			DWORD Address = 0;
+			cout << "输入要设置的地址: ";
+			scanf_s("%x", &Address);
+			BreakPoint::SetBreakPoint_Mem(m_hProcess, Address, 1);
+			continue;
 		}
 		else if (!strcmp(inputStr, "bhe")) // 硬件执行断点
 		{
@@ -77,7 +99,7 @@ void User::GetUserInput()
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
 			BreakPoint::SetBreakPoint_Hard(m_hThread, Address);
-			break;
+			continue;
 		}
 		else if (!strcmp(inputStr, "bhr")) // 硬件读断点
 		{
@@ -85,7 +107,7 @@ void User::GetUserInput()
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
 			BreakPoint::SetBreakPoint_Hard(m_hThread, Address, 3, 3);
-			break;
+			continue;
 		}
 		else if (!strcmp(inputStr, "bhw")) // 硬件写断点
 		{
@@ -93,7 +115,7 @@ void User::GetUserInput()
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
 			BreakPoint::SetBreakPoint_Hard(m_hThread, Address, 1, 3);
-			break;
+			continue;
 		}
 		else if (!strcmp(inputStr, "bl")) // 查看断点列表
 		{
@@ -243,7 +265,9 @@ void User::ShowHelpManual()
 {
 	cout << "\n<1.断点>" << endl;
 	cout << "\tbp - 设置软件断点" << endl;
-	cout << "\tbm - 设置内存断点" << endl;
+	cout << "\tbme - 设置内存执行断点" << endl;
+	cout << "\tbmr - 设置内存读断点" << endl;
+	cout << "\tbmw - 设置内存写断点" << endl;
 	cout << "\tbhe - 硬件执行断点" << endl;
 	cout << "\tbhr - 硬件读断点" << endl;
 	cout << "\tbhw - 硬件写断点" << endl;
@@ -608,4 +632,10 @@ void User::ShowMyModuleInfo()
 	}
 	printf("+------------------+----------+----------------------------------------------------+\n");
 	delete[] pModule;
+}
+
+// 返回用户输入的 内存执行断点地址
+DWORD User::ReturnInputAddress()
+{
+	return m_dwMemExcAddress;
 }
