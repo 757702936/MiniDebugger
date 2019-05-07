@@ -43,21 +43,29 @@ public:
 	static bool SetBreakPoint_TF(HANDLE hThread);
 
 	// 设置软断点
-	static void SetBreadPoint_Soft(HANDLE hProcess, DWORD address);
+	static void SetBreadPoint_Soft(HANDLE hProcess, DWORD address, bool temp);
 	// 修复软件断点
 	static void FixBreakPoint_Soft(HANDLE hProcess, HANDLE hThread, DWORD address);
 
 	// 设置硬件断点
-	static void SetBreakPoint_Hard(HANDLE hThread, DWORD address, DWORD Type = 0, DWORD Len = 0);
+	static void SetBreakPoint_Hard(HANDLE hThread, DWORD address, /*bool temp = false, */DWORD Type = 0, DWORD Len = 0);
 	// 修复硬件断点
 	static bool FixBreakPoint_Hard(HANDLE hProcess, HANDLE hThread, DWORD address);
 
 	// 设置内存断点
-	static void SetBreakPoint_Mem(HANDLE hProcess, DWORD address, DWORD type);
+	static void SetBreakPoint_Mem(HANDLE hProcess, DWORD address, bool temp, DWORD type);
 	// 修复内存断点
 	static bool FixBreakPoint_Mem(HANDLE hProcess, HANDLE hThread, DWORD address);
 	// 获取内存执行断点异常地址
 	static void GetMemoryExceptionAddress(DWORD address);
+
+	// 获取硬件修复永久断点标志位
+	//static bool GetFixHardAlwaysFlag();
+
+	// 设置软件永久断点
+	static void SetSoftAlways(HANDLE hProcess);
+	// 设置硬件永久断点
+	//static void SetHardAlways(HANDLE hThread, DWORD address);
 
 private:
 	// 保存所有断点
@@ -68,5 +76,13 @@ private:
 	static DWORD m_dwOldProtect;
 	// 判断是否是内存执行断点
 	static bool m_bIsMeme;
+	// 永久软件断点标志位
+	static bool m_bIsSoftAlways;
+	// 永久硬件断点标志位
+	//static bool m_bIsHardAlways;
+	// 永久硬件修复断点标志位
+	//static bool m_bIsFixHardAlways;
+	// 永久内存断点标志位
+	//static bool m_bIsMemAlways;
 };
 

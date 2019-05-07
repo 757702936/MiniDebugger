@@ -20,7 +20,7 @@ public:
 	~User();
 
 	// 获取用户输入
-	static void GetUserInput();
+	static DWORD GetUserInput();
 
 	// 显示用户界面
 	static void ShowUI();

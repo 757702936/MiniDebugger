@@ -60,7 +60,6 @@ void DebugTarget::DebugLoop()
 {
 	// 用于保存调试信息的处理结果
 	DWORD result = DBG_CONTINUE;
-	
 	while (true)
 	{
 		// 等待调试事件
@@ -76,12 +75,12 @@ void DebugTarget::DebugLoop()
 		// 分派调试事件
 		result = DispatchDebugEvent();
 
-		// 根据产生异常的位置关闭句柄
-		CloseExceptionHandles();
-
 		// 回复调试事件的处理结果
 		ContinueDebugEvent(m_stcDbEvent.dwProcessId,
 			m_stcDbEvent.dwThreadId, result);
+
+		// 根据产生异常的位置关闭句柄
+		CloseExceptionHandles();
 	}
 }
 
@@ -149,7 +148,7 @@ DWORD DebugTarget::OnHandleException()
 			if (m_bIsSystemBP)
 			{
 				// 在 OEP 位置设置一个软件断点
-				BreakPoint::SetBreadPoint_Soft(m_hProcess, m_OEP);
+				BreakPoint::SetBreadPoint_Soft(m_hProcess, m_OEP, 0);
 				// 下一次就不是系统断点了
 				m_bIsSystemBP = false;
 				// 这个位置不接收用户输入，第一次只显示

@@ -53,9 +53,8 @@ void* User::m_pAddress = 0;
 HANDLE User::m_hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
 DWORD User::m_dwMemExcAddress = 0;
 
-
 // 获取用户输入
-void User::GetUserInput()
+DWORD User::GetUserInput()
 {
 	cout << "请输入指令：";
 	char inputStr[30] = { 0 };
@@ -66,23 +65,25 @@ void User::GetUserInput()
 			DWORD Address = 0;
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
-			BreakPoint::SetBreadPoint_Soft(m_hProcess, Address);
+			cout << "是否设置为永久断点：是(1)，否(0)" << endl;
+			BOOL bTemp = true;
+			scanf_s("%d", &bTemp);
+			BreakPoint::SetBreadPoint_Soft(m_hProcess, Address, bTemp);
 			continue;
 		}
 		else if (!strcmp(inputStr, "bme")) // 设置内存执行断点
 		{
-			//DWORD Address = 0;
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &m_dwMemExcAddress);
-			BreakPoint::SetBreakPoint_Mem(m_hProcess, m_dwMemExcAddress, 8);
+			BreakPoint::SetBreakPoint_Mem(m_hProcess, m_dwMemExcAddress, false, 8);
 			continue;
 		}
 		else if (!strcmp(inputStr, "bmr")) // 设置内存读断点
 		{
-			DWORD Address = 0;
+			//DWORD Address = 0;
 			cout << "输入要设置的地址: ";
-			scanf_s("%x", &Address);
-			BreakPoint::SetBreakPoint_Mem(m_hProcess, Address, 0);
+			scanf_s("%x", &m_dwMemExcAddress);
+			BreakPoint::SetBreakPoint_Mem(m_hProcess, m_dwMemExcAddress, false, 0);
 			continue;
 		}
 		else if (!strcmp(inputStr, "bmw")) // 设置内存写断点
@@ -90,7 +91,7 @@ void User::GetUserInput()
 			DWORD Address = 0;
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
-			BreakPoint::SetBreakPoint_Mem(m_hProcess, Address, 1);
+			BreakPoint::SetBreakPoint_Mem(m_hProcess, Address, false, 1);
 			continue;
 		}
 		else if (!strcmp(inputStr, "bhe")) // 硬件执行断点
@@ -98,7 +99,10 @@ void User::GetUserInput()
 			DWORD Address = 0;
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
-			BreakPoint::SetBreakPoint_Hard(m_hThread, Address);
+			/*cout << "是否设置为永久断点：是(1)，否(0)" << endl;
+			BOOL bTemp = true;
+			scanf_s("%d", &bTemp);*/
+			BreakPoint::SetBreakPoint_Hard(m_hThread, Address/*, bTemp*/);
 			continue;
 		}
 		else if (!strcmp(inputStr, "bhr")) // 硬件读断点
@@ -106,7 +110,7 @@ void User::GetUserInput()
 			DWORD Address = 0;
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
-			BreakPoint::SetBreakPoint_Hard(m_hThread, Address, 3, 3);
+			BreakPoint::SetBreakPoint_Hard(m_hThread, Address, /*false, */3, 3);
 			continue;
 		}
 		else if (!strcmp(inputStr, "bhw")) // 硬件写断点
@@ -116,6 +120,10 @@ void User::GetUserInput()
 			scanf_s("%x", &Address);
 			BreakPoint::SetBreakPoint_Hard(m_hThread, Address, 1, 3);
 			continue;
+		}
+		else if (!strcmp(inputStr, "bct")) // 条件断点
+		{
+			break;
 		}
 		else if (!strcmp(inputStr, "bl")) // 查看断点列表
 		{
@@ -158,14 +166,12 @@ void User::GetUserInput()
 			{
 				DWORD len = MyCapstone::GetOpcodeLen(m_hProcess, m_pAddress, 10);
 				ct.Eip += len;
-				BreakPoint::SetBreadPoint_Soft(m_hProcess, ct.Eip);
+				BreakPoint::SetBreadPoint_Soft(m_hProcess, ct.Eip, 0);
 			}
 			else
 			{
 				BreakPoint::SetBreakPoint_TF(m_hThread);
 			}
-			
-
 			break;
 		}
 		else if (!strcmp(inputStr, "gr")) // 运行到返回
@@ -191,7 +197,6 @@ void User::GetUserInput()
 			size_t nSize = 0;
 			cout << "输入要设置的地址: ";
 			scanf_s("%x", &Address);
-			//cout << endl;
 			cout << "输入修改长度：";
 			scanf_s("%d", &nSize);
 			cout << "输入修改内容：";
@@ -249,6 +254,7 @@ void User::GetUserInput()
 			cout << "输入的指令错误！" << endl;
 		}
 	} // while
+	return DBG_CONTINUE;
 }
 
 // 显示用户界面
@@ -271,6 +277,7 @@ void User::ShowHelpManual()
 	cout << "\tbhe - 硬件执行断点" << endl;
 	cout << "\tbhr - 硬件读断点" << endl;
 	cout << "\tbhw - 硬件写断点" << endl;
+	cout << "\tbct - 条件断点" << endl;
 	cout << "\tbl - 查看断点列表" << endl;
 	cout << "\tbc - 删除指定断点" << endl;
 	cout << "<2.运行控制>" << endl;

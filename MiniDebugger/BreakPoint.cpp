@@ -32,7 +32,10 @@ vector<BreakPointInfo> BreakPoint::m_vecBP;
 DWORD BreakPoint::m_dwMemExceptionAddr = 0;
 DWORD BreakPoint::m_dwOldProtect = 0;
 bool BreakPoint::m_bIsMeme = false;
-
+bool BreakPoint::m_bIsSoftAlways = true;
+//bool BreakPoint::m_bIsHardAlways = false;
+//bool BreakPoint::m_bIsMemAlways = true;
+//bool BreakPoint::m_bIsFixHardAlways = false;
 
 // 设置TF断点
 bool BreakPoint::SetBreakPoint_TF(HANDLE hThread)
@@ -56,17 +59,19 @@ bool BreakPoint::SetBreakPoint_TF(HANDLE hThread)
 		cout << "TF断点：设置线程环境失败" << endl;
 		return false;
 	}
-
 	return true;
 }
 
 // 设置软断点
-void BreakPoint::SetBreadPoint_Soft(HANDLE hProcess, DWORD address)
+void BreakPoint::SetBreadPoint_Soft(HANDLE hProcess, DWORD address, bool temp)
 {
 	// 软件断点的原理就是修改目标代码中的【第一个字节】为
 	// 0xCC，修复的时候，因为 int 3 触发的是一个陷阱类异
 	// 常，所以指向的是下一条指令的位置，那么需要对 eip 执
 	// 行减法操作，还原指令
+
+	// 是否设置为永久断点
+	m_bIsSoftAlways = temp;
 
 	SIZE_T byte = 0;
 	DWORD oldProtect = 0;
@@ -116,18 +121,30 @@ void BreakPoint::FixBreakPoint_Soft(HANDLE hProcess, HANDLE hThread, DWORD addre
 			// 3. 这个断点是不是永久断点,需不需要被删除
 			//  - 需要删除就 erase() 
 			//  - 不需要删除就设置一个是否有效的标志位
-			m_vecBP.erase(m_vecBP.begin() + i);
+			if (!m_bIsSoftAlways)
+			{
+				m_vecBP.erase(m_vecBP.begin() + i);
+			}
 			break;
 		}
 	} // for
+
+	// 永久断点，设置一个TF
+	if (m_bIsSoftAlways)
+	{
+		SetBreakPoint_TF(hThread);
+	}
 }
 
 // 设置硬件断点
-void BreakPoint::SetBreakPoint_Hard(HANDLE hThread, DWORD address, DWORD Type, DWORD Len)
+void BreakPoint::SetBreakPoint_Hard(HANDLE hThread, DWORD address, /*bool temp, */DWORD Type, DWORD Len)
 {
 	// 如果类型设置位0，那么长度必须为0
 	// 支持硬件断点的寄存器有 6 个，其中有 4 个用于保存地址
 	// 硬件断点最多可以设置 4 个，再多就失败了
+
+	// 是否设置为永久断点
+	//m_bIsHardAlways = temp;
 
 	// 获取调试寄存器
 	CONTEXT ct = { CONTEXT_DEBUG_REGISTERS };
@@ -237,14 +254,22 @@ bool BreakPoint::FixBreakPoint_Hard(HANDLE hProcess, HANDLE hThread, DWORD addre
 			PAGE_NOACCESS, &m_dwOldProtect);
 		return false;
 	}
-		
+	
+	// 用于再次设置 软件断点，以实现永久软件断点功能
+	if (m_bIsSoftAlways)
+	{
+		SetSoftAlways(hProcess);
+		return false;
+	}
+
 	return true;
 }
 
 // 设置内存断点
-void BreakPoint::SetBreakPoint_Mem(HANDLE hProcess, DWORD address, DWORD type)
+void BreakPoint::SetBreakPoint_Mem(HANDLE hProcess, DWORD address, bool temp, DWORD type)
 {
-	//DWORD oldProtect = 0;
+	// 是否设置为永久断点
+
 	BreakPointInfo stcBP_Mem;
 
 	// 读取
@@ -325,3 +350,95 @@ void BreakPoint::GetMemoryExceptionAddress(DWORD address)
 {
 	m_dwMemExceptionAddr = address;
 }
+
+// 获取硬件修复永久断点标志位
+//bool BreakPoint::GetFixHardAlwaysFlag()
+//{
+//	return m_bIsFixHardAlways;
+//}
+
+// 设置软件永久断点
+void BreakPoint::SetSoftAlways(HANDLE hProcess)
+{
+	SIZE_T byte = 0;
+	DWORD oldProtect = 0;
+	
+	for (size_t i = 0; i < m_vecBP.size(); ++i)
+	{
+		// 判断断点类型和地址是否匹配
+		// 读取
+		if (m_vecBP[i].bpFlag == bp_soft
+			/*&& m_vecBP[i].ExceptionAddress == address*/)
+		{
+			// 修改内存保护属性
+			VirtualProtectEx(hProcess, (LPVOID)m_vecBP[i].ExceptionAddress, 1,
+				PAGE_EXECUTE_READWRITE, &oldProtect);
+			// 获取到原有数据保存到结构体
+			ReadProcessMemory(hProcess, (LPVOID)m_vecBP[i].ExceptionAddress, &m_vecBP[i].u.oldOpcode,
+				1, &byte);
+			// 将 0xCC 写入到目标位置
+			WriteProcessMemory(hProcess, (LPVOID)m_vecBP[i].ExceptionAddress, "\xCC", 1, &byte);
+			// 还原内存保护属性
+			VirtualProtectEx(hProcess, (LPVOID)m_vecBP[i].ExceptionAddress, 1, oldProtect, &oldProtect);
+		}
+	}
+}
+
+// 设置硬件永久断点
+//void BreakPoint::SetHardAlways(HANDLE hThread, DWORD address)
+//{
+//	// 获取调试寄存器
+//	CONTEXT ct = { CONTEXT_DEBUG_REGISTERS };
+//	GetThreadContext(hThread, &ct);
+//
+//	// 获取 Dr7 结构体并解析
+//	PR7 Dr7 = (PR7)& ct.Dr7;
+//
+//	for (size_t i = 0; i < m_vecBP.size(); ++i)
+//	{
+//		if (m_vecBP[i].bpFlag == bp_harde
+//			&& m_vecBP[i].ExceptionAddress == address)
+//		{
+//			// 通过 Dr7 中的L(n) 知道当前的调试寄存器是否被使用
+//			if (Dr7->L0 == FALSE)
+//			{
+//				// 设置硬件断点是否有效
+//				Dr7->L0 = TRUE;
+//				// 设置断点类型
+//				Dr7->RW0 = 0;
+//				// 设置断点地址的对齐长度
+//				Dr7->LEN0 = 0;
+//				// 设置断点地址
+//				ct.Dr0 = m_vecBP[i].ExceptionAddress;
+//			}
+//			else if (Dr7->L1 == FALSE)
+//			{
+//				Dr7->L1 = TRUE;
+//				Dr7->RW1 = 0;
+//				Dr7->LEN1 = 0;
+//				ct.Dr1 = m_vecBP[i].ExceptionAddress;
+//			}
+//			else if (Dr7->L2 == FALSE)
+//			{
+//				Dr7->L2 = TRUE;
+//				Dr7->RW2 = 0;
+//				Dr7->LEN2 = 0;
+//				ct.Dr2 = m_vecBP[i].ExceptionAddress;
+//			}
+//			else if (Dr7->L3 == FALSE)
+//			{
+//				Dr7->L3 = TRUE;
+//				Dr7->RW3 = 0;
+//				Dr7->LEN3 = 0;
+//				ct.Dr3 = m_vecBP[i].ExceptionAddress;
+//			}
+//			else
+//			{
+//				return;
+//			}
+//		}// if
+//	}// for
+//
+//	// 将修改更新到线程
+//	SetThreadContext(hThread, &ct);
+//}
