@@ -29,6 +29,9 @@ public:
 	// 处理异常
 	DWORD OnHandleException();
 
+	// 注入DLL
+	void InjectDll();
+
 private:
 	// 调试信息
 	DEBUG_EVENT m_stcDbEvent;
@@ -53,5 +56,11 @@ private:
 
 	// 附加进程调试方式标志
 	bool m_bIsOpenPid;
+
+	// 创建进程PID
+	DWORD m_dwPid;
+
+	// 存储 Hook 句柄
+	HANDLE m_hHookProcess;
 };
 

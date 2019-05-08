@@ -182,6 +182,11 @@ DWORD User::GetUserInput()
 		{
 			ExitProcess(0);
 		}
+		else if (!strcmp(inputStr, "hk")) // 反反调试
+		{
+			
+			continue;
+		}
 		else if (!strcmp(inputStr, "d")) // d(db/dw/dd/da/du) - 查看内存
 		{
 			DWORD Address = 0;
@@ -286,6 +291,7 @@ void User::ShowHelpManual()
 	cout << "\tp - 单步步过" << endl;
 	cout << "\tgr - 运行到返回" << endl;
 	cout << "\tq - 退出调试" << endl;
+	cout << "\thk - 反反调试" << endl;
 	cout << "<3.信息查看>" << endl;
 	cout << "\td(db/dw/dd/da/du) - 查看内存" << endl;
 	cout << "\te(eb/ew/ed/ea/eu) - 修改内存" << endl;

@@ -5,6 +5,9 @@
 #include <iostream>
 using namespace std;
 
+// HookDll 路径
+#define HOOKDLLPATH "D:\\Codes\\VS\\Project\\MiniDebugger\\Debug\\HookDll.dll"
+
 
 DebugTarget::DebugTarget()
 {
@@ -24,6 +27,10 @@ DebugTarget::DebugTarget()
 	m_stcCT = { 0 };
 	// 附加进程调试方式标志
 	m_bIsOpenPid = false;
+
+	m_dwPid = 0;
+
+	m_hHookProcess = 0;
 }
 
 
@@ -46,6 +53,12 @@ bool DebugTarget::open(const char* file)
 		cout << "创建调试目标进程失败！" << endl;
 		return false;
 	}
+
+	m_dwPid = pi.dwProcessId;
+	m_hHookProcess = pi.hProcess;
+	// 注入DLL
+	InjectDll();
+
 	// 关闭句柄
 	CloseHandle(pi.hThread);
 	CloseHandle(pi.hProcess);
@@ -97,6 +110,7 @@ void DebugTarget::DebugLoop()
 
 		// 根据产生异常的位置打开句柄
 		OpenExceptionHandles();
+
 		// 用户类获取句柄
 		User::GetProcessHandle(m_hProcess);
 		User::GetThreadHandle(m_hThread);
@@ -224,4 +238,63 @@ DWORD DebugTarget::OnHandleException()
 	m_bNeedInput = true;
 
 	return DBG_CONTINUE;
+}
+
+ //注入DLL
+void DebugTarget::InjectDll()
+{
+#if 1
+	// 从目标进程申请一块内存（大小是DLL路径的长度）
+	LPVOID lpBuff = VirtualAllocEx(m_hHookProcess, NULL,
+		1, // //由于是按粒度（4096字节）分配内存，写1也是相当于分配4K
+		MEM_COMMIT,
+		PAGE_READWRITE);
+
+	// 将 DLL 路径写入到目标进程中
+	DWORD dwWrite = 0;
+
+	DWORD dwRet = WriteProcessMemory(m_hHookProcess, lpBuff,
+		//D:\Codes\VS\Project\MiniDebugger\Debug
+		"D:\\Codes\\VS\\Project\\MiniDebugger\\Debug\\HookDll.dll",
+		strlen("D:\\Codes\\VS\\Project\\MiniDebugger\\Debug\\HookDll.dll") + 1,
+		&dwWrite);
+	if (dwRet == 0)
+	{
+		return ;
+	}
+	// 创建远程线程
+	HANDLE hThread = CreateRemoteThread(m_hHookProcess, NULL, NULL,
+		(LPTHREAD_START_ROUTINE)LoadLibraryA,
+		lpBuff, 0, 0);
+	if (hThread == INVALID_HANDLE_VALUE)
+	{
+		return ;
+	}
+#else
+	HANDLE hProcess = OpenProcess(
+		PROCESS_ALL_ACCESS,
+		FALSE, m_dwPid);
+	if (!hProcess)
+	{
+		printf("进程打开失败\n");
+		return;
+	}
+	//2.从目标进程中申请一块内存（大小是DLL路径的长度）
+	LPVOID lpBuf = VirtualAllocEx(hProcess,
+		NULL,
+		1, //由于是按粒度（4096字节）分配内存，写1也是一样的
+		MEM_COMMIT,
+		PAGE_READWRITE);
+	//3.将dll路径写入到目标进程中
+	DWORD dwWrite;
+	WriteProcessMemory(hProcess,
+		lpBuf, "D:\\Codes\\VS\\Project\\MiniDebugger\\Debug\\HookDll.dll",
+		strlen("D:\\Codes\\VS\\Project\\MiniDebugger\\Debug\\HookDll.dll"),
+		&dwWrite);
+	//4.创建远程线程
+	HANDLE hThread = CreateRemoteThread(hProcess,
+		NULL, NULL,
+		(LPTHREAD_START_ROUTINE)LoadLibraryA,
+		lpBuf, 0, 0);
+#endif
 }
