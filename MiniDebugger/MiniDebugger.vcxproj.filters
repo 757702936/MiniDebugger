@@ -21,6 +21,9 @@
     <Filter Include="04-反汇编引擎">
       <UniqueIdentifier>{48de6b4e-1e1f-4ec3-b8b1-9ee872252bf9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="06-PE文件">
+      <UniqueIdentifier>{af9ee4e8-d008-4232-b3f4-e49ae0be696f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -38,6 +41,9 @@
     </ClCompile>
     <ClCompile Include="MyCapstone.cpp">
       <Filter>04-反汇编引擎</Filter>
+    </ClCompile>
+    <ClCompile Include="PeFile.cpp">
+      <Filter>06-PE文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -58,6 +64,9 @@
     </ClInclude>
     <ClInclude Include="HightLight.h">
       <Filter>03-用户交互</Filter>
+    </ClInclude>
+    <ClInclude Include="PeFile.h">
+      <Filter>06-PE文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

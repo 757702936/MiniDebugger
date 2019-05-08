@@ -5,6 +5,7 @@
 #include "MyCapstone.h"
 #include "MyXEDParse.h"
 #include "HightLight.h"
+#include "PeFile.h"
 #include <psapi.h>
 #include <shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
@@ -18,6 +19,8 @@ User::User()
 User::~User()
 {
 }
+
+#define PEFILEPATH "D:\\Codes\\111\\调试器测试程序.exe"
 
 // 标志寄存器
 typedef struct _EFLAGS
@@ -254,6 +257,32 @@ DWORD User::GetUserInput()
 			ShowMyModuleInfo();
 			continue;
 		}
+		else if (!strcmp(inputStr, "export")) // 查看导出表
+		{
+			PeFile::ReadPeToBuff(PEFILEPATH);
+			if (PeFile::IsPeFile())
+			{
+				PeFile::ShowExprotInfo();
+			}
+			else
+			{
+				printf("不是PE文件\n");
+			}
+			continue;
+		}
+		else if (!strcmp(inputStr, "import")) // 查看导入表
+		{
+			PeFile::ReadPeToBuff(PEFILEPATH);
+			if (PeFile::IsPeFile())
+			{
+				PeFile::ShowImportInfo();
+			}
+			else
+			{
+				printf("不是PE文件\n");
+			}
+			continue;
+		}
 		else if (!strcmp(inputStr, "h")) // 查看帮助
 		{
 			system("cls");
@@ -306,6 +335,8 @@ void User::ShowHelpManual()
 	cout << "\tre - 修改寄存器" << endl;
 	cout << "\tk - 查看栈" << endl;
 	cout << "\tm - 查看模块" << endl;
+	cout << "\texport - 查看导出表" << endl;
+	cout << "\timport - 查看导入表" << endl;
 	cout << "\th - 查看帮助\n" << endl;
 }
 

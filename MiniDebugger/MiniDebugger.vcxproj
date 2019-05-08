@@ -127,6 +127,7 @@
     <ClCompile Include="MyCapstone.cpp" />
     <ClCompile Include="DebugTarget.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PeFile.cpp" />
     <ClCompile Include="User.cpp" />
     <ClCompile Include="MyXEDParse.cpp" />
   </ItemGroup>
@@ -134,6 +135,7 @@
     <ClInclude Include="BreakPoint.h" />
     <ClInclude Include="MyCapstone.h" />
     <ClInclude Include="DebugTarget.h" />
+    <ClInclude Include="PeFile.h" />
     <ClInclude Include="User.h" />
     <ClInclude Include="MyXEDParse.h" />
     <ClInclude Include="HightLight.h" />
