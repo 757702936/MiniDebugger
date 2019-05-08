@@ -59,7 +59,7 @@ bool DebugTarget::open(const char* file)
 	m_dwPid = pi.dwProcessId;
 	m_hHookProcess = pi.hProcess;
 	// ×¢ÈëDLL
-	//InjectDll();
+	InjectDll();
 
 	// ¹Ø±Õ¾ä±ú
 	CloseHandle(pi.hThread);

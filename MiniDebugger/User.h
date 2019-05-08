@@ -11,6 +11,23 @@ typedef struct _MYMODULEINFO
 	DWORD nSize;
 } MYMODULEINFO;
 
+// 保存 DLL 信息
+struct PluginInfo
+{
+	char name[20];
+	HMODULE module; // 模块句柄
+};
+
+// 获取DLL名字
+struct Info
+{
+	char name[20];
+};
+
+// 插件版本
+typedef int(*pPluginVer)(Info& info);
+// 执行插件
+typedef void(*ExecPlugin)();
 
 // 用户交互：显示界面，获取用户输入，设置断点...
 class User
@@ -70,6 +87,12 @@ public:
 	// 获取条件断点循环次数
 	static DWORD GetConditionCount();
 
+	// 初始化插件
+	static void InitPlugins();
+
+	// 执行插件
+	static void ExecutePlugins();
+
 private:
 	// 进程句柄
 	static HANDLE m_hProcess;
@@ -83,5 +106,7 @@ private:
 	static DWORD m_dwMemExcAddress;
 	// 条件断点循环次数
 	static DWORD m_dwCount;
+	// 存储插件信息
+	static vector<PluginInfo> m_vecPlugins;
 };
 

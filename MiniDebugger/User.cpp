@@ -53,6 +53,7 @@ void* User::m_pAddress = 0;
 HANDLE User::m_hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
 DWORD User::m_dwMemExcAddress = 0;
 DWORD User::m_dwCount = 0;
+vector<PluginInfo> User::m_vecPlugins;
 
 
 // 获取用户输入
@@ -128,14 +129,14 @@ DWORD User::GetUserInput()
 			BreakPoint::SetBreakPoint_Hard(m_hThread, Address, 1, 3);
 			continue;
 		}
-		else if (!strcmp(inputStr, "bl")) // 查看断点列表
-		{
-			break;
-		}
-		else if (!strcmp(inputStr, "bc")) // 删除指定断点
-		{
-			break;
-		}
+		//else if (!strcmp(inputStr, "bl")) // 查看断点列表
+		//{
+		//	break;
+		//}
+		//else if (!strcmp(inputStr, "bc")) // 删除指定断点
+		//{
+		//	break;
+		//}
 		else if (!strcmp(inputStr, "g")) // 运行
 		{
 			break;
@@ -177,10 +178,17 @@ DWORD User::GetUserInput()
 			}
 			break;
 		}
-		else if (!strcmp(inputStr, "gr")) // 运行到返回
+		else if (!strcmp(inputStr, "sp")) // 插件
 		{
-			break;
+			// 初始化插件
+			InitPlugins();
+			ExecutePlugins();
+			continue;
 		}
+		//else if (!strcmp(inputStr, "gr")) // 运行到返回
+		//{
+		//	break;
+		//}
 		else if (!strcmp(inputStr, "q")) // 退出调试
 		{
 			ExitProcess(0);
@@ -280,13 +288,14 @@ void User::ShowHelpManual()
 	cout << "\tbhe - 硬件执行断点" << endl;
 	cout << "\tbhr - 硬件读断点" << endl;
 	cout << "\tbhw - 硬件写断点" << endl;
-	cout << "\tbl - 查看断点列表" << endl;
-	cout << "\tbc - 删除指定断点" << endl;
+	//cout << "\tbl - 查看断点列表" << endl;
+	//cout << "\tbc - 删除指定断点" << endl;
 	cout << "<2.运行控制>" << endl;
 	cout << "\tg - 运行" << endl;
 	cout << "\tt - 单步步入" << endl;
 	cout << "\tp - 单步步过" << endl;
-	cout << "\tgr - 运行到返回" << endl;
+	cout << "\tsp - 插件" << endl;
+	//cout << "\tgr - 运行到返回" << endl;
 	cout << "\tq - 退出调试" << endl;
 	cout << "<3.信息查看>" << endl;
 	cout << "\td(db/dw/dd/da/du) - 查看内存" << endl;
@@ -653,4 +662,60 @@ DWORD User::ReturnInputAddress()
 DWORD User::GetConditionCount()
 {
 	return m_dwCount;
+}
+
+// 初始化插件
+void User::InitPlugins()
+{
+	string path(".\\plugin\\");
+
+	// 用于存放文件信息 
+	WIN32_FIND_DATAA FindData = { 0 };
+
+	// 尝试查找第一个文件
+	HANDLE FindHandle = FindFirstFileA(".\\plugin\\*.dll", &FindData);
+
+	// 如果找到插件
+	if (FindHandle != INVALID_HANDLE_VALUE)
+	{
+		// 拼接出路径
+		string currentfile = path + FindData.cFileName;
+
+		// 加载DLL到程序
+		HMODULE Handle = LoadLibraryA(currentfile.c_str());
+
+		// 是否加载成功
+		if (Handle != NULL)
+		{
+			// 获取函数判断是否符合版本
+			pPluginVer func = (pPluginVer)GetProcAddress(Handle, "getinfo");
+
+			// 调用插件的函数判断版本
+			if (func != NULL)
+			{
+				Info info = { 0 };
+				if (func(info) == 1)
+				{
+					// 如果符合条件，保存插件信息
+					PluginInfo Plugin = { 0 };
+					strcpy_s(Plugin.name, 20, info.name);
+					Plugin.module = Handle;
+					m_vecPlugins.push_back(Plugin);
+				}
+			}// 调用插件的函数判断版本
+		}// 是否加载成功
+	}//if 如果找到插件
+}
+
+// 执行插件
+void User::ExecutePlugins()
+{
+	for (size_t i = 0; i < m_vecPlugins.size(); ++i)
+	{
+		ExecPlugin fun = (ExecPlugin)GetProcAddress(m_vecPlugins[i].module, "show");
+		if (fun != NULL)
+		{
+			fun();
+		}
+	}
 }
