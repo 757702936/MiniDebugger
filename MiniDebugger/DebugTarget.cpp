@@ -22,6 +22,8 @@ DebugTarget::DebugTarget()
 	m_OEP = 0;
 	// 寄存器状态
 	m_stcCT = { 0 };
+	// 附加进程调试方式标志
+	m_bIsOpenPid = false;
 }
 
 
@@ -44,7 +46,6 @@ bool DebugTarget::open(const char* file)
 		cout << "创建调试目标进程失败！" << endl;
 		return false;
 	}
-
 	// 关闭句柄
 	CloseHandle(pi.hThread);
 	CloseHandle(pi.hProcess);
@@ -53,6 +54,35 @@ bool DebugTarget::open(const char* file)
 	MyCapstone::Init();
 
 	return true;
+}
+
+// 附加进程调试
+bool DebugTarget::OpenPid(DWORD pid)
+{
+	HANDLE hToken;
+	HANDLE hProcess = GetCurrentProcess();  // 获取当前进程句柄
+
+	// 打开当前进程的Token，就是一个权限令牌，第二个参数可以用TOKEN_ALL_ACCESS
+	if (OpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
+	{
+		TOKEN_PRIVILEGES tkp;
+		if (LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tkp.Privileges[0].Luid))
+		{
+			tkp.PrivilegeCount = 1;
+			tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+			//通知系统修改进程权限
+			BOOL bREt = AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, NULL, 0);
+		}
+		CloseHandle(hToken);
+	}
+
+	// 初始化反汇编引擎
+	MyCapstone::Init();
+
+	m_bIsOpenPid = true;
+
+	return DebugActiveProcess(pid);
 }
 
 // 调试循环
@@ -149,10 +179,15 @@ DWORD DebugTarget::OnHandleException()
 			{
 				// 在 OEP 位置设置一个软件断点
 				BreakPoint::SetBreadPoint_Soft(m_hProcess, m_OEP, 0);
+
 				// 下一次就不是系统断点了
 				m_bIsSystemBP = false;
+
 				// 这个位置不接收用户输入，第一次只显示
-				m_bNeedInput = false;
+				if (m_bIsOpenPid)
+					m_bNeedInput = true;
+				else
+					m_bNeedInput = false;
 				break;
 			}
 			// 修复当前设置的软件断点

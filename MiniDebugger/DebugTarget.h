@@ -8,8 +8,11 @@ public:
 	DebugTarget();
 	~DebugTarget();
 
-	// 打开文件
+	// 默认方式打开文件调试
 	bool open(const char* file);
+
+	// 附加进程调试
+	bool OpenPid(DWORD pid);
 
 	// 调试循环
 	void DebugLoop();
@@ -47,5 +50,8 @@ private:
 
 	// 寄存器状态
 	CONTEXT m_stcCT;
+
+	// 附加进程调试方式标志
+	bool m_bIsOpenPid;
 };
 
