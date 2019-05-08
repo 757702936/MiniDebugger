@@ -3,6 +3,11 @@
 #include "User.h"
 #include "BreakPoint.h"
 #include <iostream>
+#include <DbgHelp.h>
+#include <winternl.h>
+#pragma comment(lib, "Dbghelp.lib")
+#pragma comment(lib, "ntdll.lib")
+
 using namespace std;
 
 // HookDll 路径
@@ -58,8 +63,12 @@ bool DebugTarget::open(const char* file)
 
 	m_dwPid = pi.dwProcessId;
 	m_hHookProcess = pi.hProcess;
+
 	// 注入DLL
-	InjectDll();
+	//InjectDll();
+
+	// 隐藏PEB
+	HidePeb();
 
 	// 关闭句柄
 	CloseHandle(pi.hThread);
@@ -103,6 +112,7 @@ bool DebugTarget::OpenPid(DWORD pid)
 // 调试循环
 void DebugTarget::DebugLoop()
 {
+
 	// 用于保存调试信息的处理结果
 	DWORD result = DBG_CONTINUE;
 	while (true)
@@ -117,7 +127,7 @@ void DebugTarget::DebugLoop()
 		User::GetProcessHandle(m_hProcess);
 		User::GetThreadHandle(m_hThread);
 		User::GetExceptionAddress(m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionAddress);
-		
+
 		// 分派调试事件
 		result = DispatchDebugEvent();
 
@@ -320,4 +330,90 @@ void DebugTarget::InjectDll()
 		(LPTHREAD_START_ROUTINE)LoadLibraryA,
 		lpBuf, 0, 0);
 #endif
+}
+
+// 隐藏 PEB
+void DebugTarget::HidePeb()
+{
+	typedef NTSTATUS(WINAPI * MYNTQIP)
+		(HANDLE ProcessHandle, PROCESSINFOCLASS ProcessInformationClass,
+			PVOID ProcessInformation, ULONG ProcessInformationLength,
+			PULONG ReturnLength);
+
+	typedef struct _MY_PEB {               // Size: 0x1D8
+		UCHAR           InheritedAddressSpace;
+		UCHAR           ReadImageFileExecOptions;
+		UCHAR           BeingDebugged;              //Debug运行标志
+		UCHAR           SpareBool;
+		HANDLE          Mutant;
+		HINSTANCE       ImageBaseAddress;           //程序加载的基地址
+		struct _PEB_LDR_DATA* Ldr;                //Ptr32 _PEB_LDR_DATA
+		struct _RTL_USER_PROCESS_PARAMETERS* ProcessParameters;
+		ULONG           SubSystemData;
+		HANDLE         ProcessHeap;
+		KSPIN_LOCK      FastPebLock;
+		ULONG           FastPebLockRoutine;
+		ULONG           FastPebUnlockRoutine;
+		ULONG           EnvironmentUpdateCount;
+		ULONG           KernelCallbackTable;
+		LARGE_INTEGER   SystemReserved;
+		struct _PEB_FREE_BLOCK* FreeList;
+		ULONG           TlsExpansionCounter;
+		ULONG           TlsBitmap;
+		LARGE_INTEGER   TlsBitmapBits;
+		ULONG           ReadOnlySharedMemoryBase;
+		ULONG           ReadOnlySharedMemoryHeap;
+		ULONG           ReadOnlyStaticServerData;
+		ULONG           AnsiCodePageData;
+		ULONG           OemCodePageData;
+		ULONG           UnicodeCaseTableData;
+		ULONG           NumberOfProcessors;
+		LARGE_INTEGER   NtGlobalFlag;               // Address of a local copy
+		LARGE_INTEGER   CriticalSectionTimeout;
+		ULONG           HeapSegmentReserve;
+		ULONG           HeapSegmentCommit;
+		ULONG           HeapDeCommitTotalFreeThreshold;
+		ULONG           HeapDeCommitFreeBlockThreshold;
+		ULONG           NumberOfHeaps;
+		ULONG           MaximumNumberOfHeaps;
+		ULONG           ProcessHeaps;
+		ULONG           GdiSharedHandleTable;
+		ULONG           ProcessStarterHelper;
+		ULONG           GdiDCAttributeList;
+		KSPIN_LOCK      LoaderLock;
+		ULONG           OSMajorVersion;
+		ULONG           OSMinorVersion;
+		USHORT          OSBuildNumber;
+		USHORT          OSCSDVersion;
+		ULONG           OSPlatformId;
+		ULONG           ImageSubsystem;
+		ULONG           ImageSubsystemMajorVersion;
+		ULONG           ImageSubsystemMinorVersion;
+		ULONG           ImageProcessAffinityMask;
+		ULONG           GdiHandleBuffer[0x22];
+		ULONG           PostProcessInitRoutine;
+		ULONG           TlsExpansionBitmap;
+		UCHAR           TlsExpansionBitmapBits[0x80];
+		ULONG           SessionId;
+	} MY_PEB, * PMY_PEB;
+	
+	//获取模块基址
+	MYNTQIP NtQueryInformationProcess = (MYNTQIP)(GetProcAddress(GetModuleHandle("ntdll"),
+			"NtQueryInformationProcess"));
+
+	PROCESS_BASIC_INFORMATION info = { 0 };	//保存进程信息
+	ULONG ReturnSize = 0;
+	NTSTATUS Status = NtQueryInformationProcess(m_hHookProcess, ProcessBasicInformation, &info,
+		sizeof(PROCESS_BASIC_INFORMATION), &ReturnSize);
+	if (NT_SUCCESS(Status))
+	{
+		MY_PEB* Peb = (MY_PEB*)malloc(sizeof(MY_PEB));
+		// 读取内容到 peb
+		ReadProcessMemory(m_hHookProcess, (PVOID)info.PebBaseAddress, Peb, sizeof(MY_PEB), NULL);
+		// 修改 BeingDebugged 的值为 0
+		Peb->BeingDebugged = 0;
+		// 把修改过后的 BeingDebugged 重新写入内存
+		WriteProcessMemory(m_hHookProcess, (PVOID)info.PebBaseAddress, Peb, sizeof(MY_PEB), NULL);
+		printf("隐藏PEB成功\n");
+	}
 }

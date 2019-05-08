@@ -93,6 +93,12 @@ public:
 	// 执行插件
 	static void ExecutePlugins();
 
+	// 查看函数地址
+	static void SymAddress();
+	
+	// 查看函数名字
+	static void SymFuncName();
+
 private:
 	// 进程句柄
 	static HANDLE m_hProcess;

@@ -32,6 +32,9 @@ public:
 	// 注入DLL
 	void InjectDll();
 
+	// 隐藏 PEB
+	void HidePeb();
+
 private:
 	// 调试信息
 	DEBUG_EVENT m_stcDbEvent;

@@ -8,6 +8,8 @@
 #include "PeFile.h"
 #include <psapi.h>
 #include <shlwapi.h>
+#include <DbgHelp.h>
+#pragma comment(lib, "Dbghelp.lib")
 #pragma comment(lib, "Shlwapi.lib")
 
 
@@ -49,6 +51,7 @@ typedef struct _EFLAGS
 	unsigned Reserve5 : 10;
 }EFLAGS, * PEFLAGS;
 
+
 // 初始化静态成员
 HANDLE User::m_hProcess = 0;
 HANDLE User::m_hThread = 0;
@@ -57,7 +60,6 @@ HANDLE User::m_hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
 DWORD User::m_dwMemExcAddress = 0;
 DWORD User::m_dwCount = 0;
 vector<PluginInfo> User::m_vecPlugins;
-
 
 // 获取用户输入
 DWORD User::GetUserInput()
@@ -283,6 +285,16 @@ DWORD User::GetUserInput()
 			}
 			continue;
 		}
+		else if (!strcmp(inputStr, "syma")) // 查看函数地址
+		{
+			SymAddress();
+			continue;
+		}
+		else if (!strcmp(inputStr, "symf")) // 查看函数名字
+		{
+			SymFuncName();
+			continue;
+		}
 		else if (!strcmp(inputStr, "h")) // 查看帮助
 		{
 			system("cls");
@@ -337,6 +349,8 @@ void User::ShowHelpManual()
 	cout << "\tm - 查看模块" << endl;
 	cout << "\texport - 查看导出表" << endl;
 	cout << "\timport - 查看导入表" << endl;
+	cout << "\tsyma - 查看函数地址" << endl;
+	cout << "\tsymf - 查看函数名字" << endl;
 	cout << "\th - 查看帮助\n" << endl;
 }
 
@@ -749,4 +763,42 @@ void User::ExecutePlugins()
 			fun();
 		}
 	}
+}
+
+// 查看函数地址
+void User::SymAddress()
+{
+	SymInitialize(m_hProcess, NULL, TRUE);
+	char name[1024] = { 0 };
+	cout << "输入函数名：";
+	cin >> name;
+	char buff[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+	PSYMBOL_INFO pSymbol = (PSYMBOL_INFO)buff;
+	pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	pSymbol->MaxNameLen = MAX_SYM_NAME;
+	// 根据名字查询符号信息， 输出到 pSymBol 中
+	if (!SymFromName(m_hProcess, name, pSymbol))
+	{
+		return;
+	}
+	printf("%08X\n", pSymbol->Address);
+}
+
+// 查看函数名字
+void User::SymFuncName()
+{
+	SymInitialize(m_hProcess, NULL, TRUE);
+	DWORD address = 0;
+	cout << "输入函数地址：";
+	scanf_s("%08X", &address);
+	DWORD64 dwDisplacement = 0;
+	char buff[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+	PSYMBOL_INFO pSymbol = (PSYMBOL_INFO)buff;
+	pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	pSymbol->MaxNameLen = MAX_SYM_NAME;
+
+	// 根据地址获取符号信息
+	if (!SymFromAddr(m_hProcess, address, &dwDisplacement, pSymbol))
+		return;
+	cout << "函数地址对应名称：" << pSymbol->Name << endl;	
 }
