@@ -31,6 +31,8 @@ DebugTarget::DebugTarget()
 	m_dwPid = 0;
 
 	m_hHookProcess = 0;
+
+	m_dwCtCout = 0;
 }
 
 
@@ -57,7 +59,7 @@ bool DebugTarget::open(const char* file)
 	m_dwPid = pi.dwProcessId;
 	m_hHookProcess = pi.hProcess;
 	// 注入DLL
-	InjectDll();
+	//InjectDll();
 
 	// 关闭句柄
 	CloseHandle(pi.hThread);
@@ -183,6 +185,9 @@ DWORD DebugTarget::OnHandleException()
 
 	DWORD MemoryExceptionAddress = m_stcDbEvent.u.Exception.ExceptionRecord.ExceptionInformation[1];
 	BreakPoint::GetMemoryExceptionAddress(MemoryExceptionAddress);
+
+	bool bCtCout = true;
+
 	switch (ExceptionCode)
 	{
 		// 修复软件断点
@@ -205,7 +210,7 @@ DWORD DebugTarget::OnHandleException()
 				break;
 			}
 			// 修复当前设置的软件断点
-			BreakPoint::FixBreakPoint_Soft(m_hProcess, m_hThread, ExceptionAddress);
+			bCtCout = BreakPoint::FixBreakPoint_Soft(m_hProcess, m_hThread, ExceptionAddress);
 			break;
 		}
 		// 修复硬件断点
@@ -227,12 +232,30 @@ DWORD DebugTarget::OnHandleException()
 	// 如果需要断下并接收输入
 	if (m_bNeedInput)
 	{
-		system("cls");
-		m_stcCT.ContextFlags = CONTEXT_ALL;
-		GetThreadContext(m_hThread, &m_stcCT);
-		User::ShowRegisterInfo(m_stcCT);
-		MyCapstone::DisAsm(m_hProcess, (LPVOID)ExceptionAddress, 10);
-		User::GetUserInput();
+		// 获取条件断点次数
+		if (bCtCout == false)
+		{
+			static int CountFlag = 1;
+			if (CountFlag == 1)
+			{
+				m_dwCtCout = BreakPoint::GetConditionCount();
+				CountFlag = 2;
+			}
+		}
+		if (m_dwCtCout > 0)
+		{
+			m_dwCtCout--;
+			return DBG_CONTINUE;
+		}
+		else
+		{
+			system("cls");
+			m_stcCT.ContextFlags = CONTEXT_ALL;
+			GetThreadContext(m_hThread, &m_stcCT);
+			User::ShowRegisterInfo(m_stcCT);
+			MyCapstone::DisAsm(m_hProcess, (LPVOID)ExceptionAddress, 10);
+			User::GetUserInput();
+		}
 	}
 
 	m_bNeedInput = true;

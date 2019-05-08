@@ -52,6 +52,8 @@ HANDLE User::m_hThread = 0;
 void* User::m_pAddress = 0;
 HANDLE User::m_hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
 DWORD User::m_dwMemExcAddress = 0;
+DWORD User::m_dwCount = 0;
+
 
 // 获取用户输入
 DWORD User::GetUserInput()
@@ -68,6 +70,11 @@ DWORD User::GetUserInput()
 			cout << "是否设置为永久断点：是(1)，否(0)" << endl;
 			BOOL bTemp = true;
 			scanf_s("%d", &bTemp);
+			if (1 == bTemp)
+			{
+				cout << "输入要循环的次数：";
+				scanf_s("%d", &m_dwCount);
+			}
 			BreakPoint::SetBreadPoint_Soft(m_hProcess, Address, bTemp);
 			continue;
 		}
@@ -120,10 +127,6 @@ DWORD User::GetUserInput()
 			scanf_s("%x", &Address);
 			BreakPoint::SetBreakPoint_Hard(m_hThread, Address, 1, 3);
 			continue;
-		}
-		else if (!strcmp(inputStr, "bct")) // 条件断点
-		{
-			break;
 		}
 		else if (!strcmp(inputStr, "bl")) // 查看断点列表
 		{
@@ -181,11 +184,6 @@ DWORD User::GetUserInput()
 		else if (!strcmp(inputStr, "q")) // 退出调试
 		{
 			ExitProcess(0);
-		}
-		else if (!strcmp(inputStr, "hk")) // 反反调试
-		{
-			
-			continue;
 		}
 		else if (!strcmp(inputStr, "d")) // d(db/dw/dd/da/du) - 查看内存
 		{
@@ -282,7 +280,6 @@ void User::ShowHelpManual()
 	cout << "\tbhe - 硬件执行断点" << endl;
 	cout << "\tbhr - 硬件读断点" << endl;
 	cout << "\tbhw - 硬件写断点" << endl;
-	cout << "\tbct - 条件断点" << endl;
 	cout << "\tbl - 查看断点列表" << endl;
 	cout << "\tbc - 删除指定断点" << endl;
 	cout << "<2.运行控制>" << endl;
@@ -291,7 +288,6 @@ void User::ShowHelpManual()
 	cout << "\tp - 单步步过" << endl;
 	cout << "\tgr - 运行到返回" << endl;
 	cout << "\tq - 退出调试" << endl;
-	cout << "\thk - 反反调试" << endl;
 	cout << "<3.信息查看>" << endl;
 	cout << "\td(db/dw/dd/da/du) - 查看内存" << endl;
 	cout << "\te(eb/ew/ed/ea/eu) - 修改内存" << endl;
@@ -651,4 +647,10 @@ void User::ShowMyModuleInfo()
 DWORD User::ReturnInputAddress()
 {
 	return m_dwMemExcAddress;
+}
+
+// 获取条件断点循环次数
+DWORD User::GetConditionCount()
+{
+	return m_dwCount;
 }

@@ -62,5 +62,8 @@ private:
 
 	// 存储 Hook 句柄
 	HANDLE m_hHookProcess;
+
+	// 获取条件断点
+	DWORD m_dwCtCout;
 };
 

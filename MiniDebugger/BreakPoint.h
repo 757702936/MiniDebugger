@@ -45,7 +45,7 @@ public:
 	// 设置软断点
 	static void SetBreadPoint_Soft(HANDLE hProcess, DWORD address, bool temp);
 	// 修复软件断点
-	static void FixBreakPoint_Soft(HANDLE hProcess, HANDLE hThread, DWORD address);
+	static bool FixBreakPoint_Soft(HANDLE hProcess, HANDLE hThread, DWORD address);
 
 	// 设置硬件断点
 	static void SetBreakPoint_Hard(HANDLE hThread, DWORD address, /*bool temp = false, */DWORD Type = 0, DWORD Len = 0);
@@ -67,6 +67,9 @@ public:
 	// 设置硬件永久断点
 	//static void SetHardAlways(HANDLE hThread, DWORD address);
 
+	// 获取条件断点循环次数
+	static DWORD GetConditionCount();
+
 private:
 	// 保存所有断点
 	static vector<BreakPointInfo> m_vecBP;
@@ -84,5 +87,7 @@ private:
 	//static bool m_bIsFixHardAlways;
 	// 永久内存断点标志位
 	//static bool m_bIsMemAlways;
+	// 获取条件断点
+	static DWORD m_dwCtCout;
 };
 

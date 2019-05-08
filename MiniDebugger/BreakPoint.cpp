@@ -36,6 +36,7 @@ bool BreakPoint::m_bIsSoftAlways = true;
 //bool BreakPoint::m_bIsHardAlways = false;
 //bool BreakPoint::m_bIsMemAlways = true;
 //bool BreakPoint::m_bIsFixHardAlways = false;
+DWORD BreakPoint::m_dwCtCout = 0;
 
 // 设置TF断点
 bool BreakPoint::SetBreakPoint_TF(HANDLE hThread)
@@ -92,7 +93,7 @@ void BreakPoint::SetBreadPoint_Soft(HANDLE hProcess, DWORD address, bool temp)
 }
 
 // 修复软件断点
-void BreakPoint::FixBreakPoint_Soft(HANDLE hProcess, HANDLE hThread, DWORD address)
+bool BreakPoint::FixBreakPoint_Soft(HANDLE hProcess, HANDLE hThread, DWORD address)
 {
 	// 判断是否需要修复
 	for (size_t i = 0; i < m_vecBP.size(); ++i)
@@ -132,8 +133,17 @@ void BreakPoint::FixBreakPoint_Soft(HANDLE hProcess, HANDLE hThread, DWORD addre
 	// 永久断点，设置一个TF
 	if (m_bIsSoftAlways)
 	{
+		// 获取条件断点次数
+		static int CountFlag = 1;
+		if (CountFlag == 1)
+		{
+			m_dwCtCout = User::GetConditionCount();
+			CountFlag = 2;
+		}
 		SetBreakPoint_TF(hThread);
+		return false;
 	}
+	return true;
 }
 
 // 设置硬件断点
@@ -254,7 +264,7 @@ bool BreakPoint::FixBreakPoint_Hard(HANDLE hProcess, HANDLE hThread, DWORD addre
 			PAGE_NOACCESS, &m_dwOldProtect);
 		return false;
 	}
-	
+
 	// 用于再次设置 软件断点，以实现永久软件断点功能
 	if (m_bIsSoftAlways)
 	{
@@ -382,6 +392,12 @@ void BreakPoint::SetSoftAlways(HANDLE hProcess)
 			VirtualProtectEx(hProcess, (LPVOID)m_vecBP[i].ExceptionAddress, 1, oldProtect, &oldProtect);
 		}
 	}
+}
+
+// 获取条件断点循环次数
+DWORD BreakPoint::GetConditionCount()
+{
+	return m_dwCtCout;
 }
 
 // 设置硬件永久断点

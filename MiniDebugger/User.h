@@ -67,6 +67,9 @@ public:
 	// 返回用户输入的 内存执行断点地址
 	static DWORD ReturnInputAddress();
 
+	// 获取条件断点循环次数
+	static DWORD GetConditionCount();
+
 private:
 	// 进程句柄
 	static HANDLE m_hProcess;
@@ -78,5 +81,7 @@ private:
 	static HANDLE m_hStdOut;
 	// 存储用户输入的 内存执行断点地址
 	static DWORD m_dwMemExcAddress;
+	// 条件断点循环次数
+	static DWORD m_dwCount;
 };
 
