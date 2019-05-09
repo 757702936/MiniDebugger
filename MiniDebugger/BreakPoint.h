@@ -70,6 +70,9 @@ public:
 	// 获取条件断点循环次数
 	static DWORD GetConditionCount();
 
+	// 获取调试器交给被调试程序处理标志位状态
+	static bool GetNoHandle();
+
 private:
 	// 保存所有断点
 	static vector<BreakPointInfo> m_vecBP;
@@ -89,5 +92,7 @@ private:
 	//static bool m_bIsMemAlways;
 	// 获取条件断点
 	static DWORD m_dwCtCout;
+	// 调试器交给被调试程序处理标志位
+	static bool m_bNoHandle;
 };
 

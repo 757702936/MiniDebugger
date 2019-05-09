@@ -65,10 +65,10 @@ bool DebugTarget::open(const char* file)
 	m_hHookProcess = pi.hProcess;
 
 	// ×¢ÈëDLL
-	//InjectDll();
+	InjectDll();
 
 	// Òþ²ØPEB
-	HidePeb();
+	//HidePeb();
 
 	// ¹Ø±Õ¾ä±ú
 	CloseHandle(pi.hThread);
@@ -234,6 +234,10 @@ DWORD DebugTarget::OnHandleException()
 		case EXCEPTION_ACCESS_VIOLATION:
 		{
 			bool bTemp = BreakPoint::FixBreakPoint_Mem(m_hProcess, m_hThread, MemoryExceptionAddress);
+			if (BreakPoint::GetNoHandle())
+			{
+				return DBG_EXCEPTION_NOT_HANDLED;
+			}
 			m_bNeedInput = bTemp;
 			break;
 		}

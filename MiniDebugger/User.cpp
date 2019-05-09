@@ -339,8 +339,8 @@ void User::ShowHelpManual()
 	//cout << "\tgr - 运行到返回" << endl;
 	cout << "\tq - 退出调试" << endl;
 	cout << "<3.信息查看>" << endl;
-	cout << "\td(db/dw/dd/da/du) - 查看内存" << endl;
-	cout << "\te(eb/ew/ed/ea/eu) - 修改内存" << endl;
+	cout << "\td - 查看内存" << endl;
+	cout << "\te - 修改内存" << endl;
 	cout << "\tu - 查看反汇编" << endl;
 	cout << "\ta - 修改反汇编" << endl;
 	cout << "\trr - 查看寄存器" << endl;

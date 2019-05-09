@@ -37,6 +37,7 @@ bool BreakPoint::m_bIsSoftAlways = true;
 //bool BreakPoint::m_bIsMemAlways = true;
 //bool BreakPoint::m_bIsFixHardAlways = false;
 DWORD BreakPoint::m_dwCtCout = 0;
+bool BreakPoint::m_bNoHandle  = false;
 
 // 设置TF断点
 bool BreakPoint::SetBreakPoint_TF(HANDLE hThread)
@@ -311,6 +312,12 @@ void BreakPoint::SetBreakPoint_Mem(HANDLE hProcess, DWORD address, bool temp, DW
 // 修复内存断点
 bool BreakPoint::FixBreakPoint_Mem(HANDLE hProcess, HANDLE hThread, DWORD address)
 {
+	// 如果地址为0，则交给调试程序自己处理
+	if (address == 0)
+	{
+		m_bNoHandle = true;
+	}
+
 	for (size_t i = 0; i < m_vecBP.size(); ++i)
 	{
 		// 判断断点类型和地址是否匹配
@@ -398,6 +405,12 @@ void BreakPoint::SetSoftAlways(HANDLE hProcess)
 DWORD BreakPoint::GetConditionCount()
 {
 	return m_dwCtCout;
+}
+
+// 获取调试器交给被调试程序处理标志位状态
+bool BreakPoint::GetNoHandle()
+{
+	return m_bNoHandle;
 }
 
 // 设置硬件永久断点
